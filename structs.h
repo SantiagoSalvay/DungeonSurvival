@@ -1,3 +1,4 @@
+#pragma once
 #include <string>
 
 struct Personaje {
@@ -24,8 +25,8 @@ struct Enemigo {
 
 struct Mercader {
 	std::string nombre;
-	std::string catalogo[5];
-	int precios[5];
+	std::string catalogo[6];
+	int precios[6];
 };
 
 struct Cofre {

@@ -3,5 +3,5 @@
     <Platform Name="x64" />
     <Platform Name="x86" />
   </Configurations>
-  <Project Path="DungeonSurvival.vcxproj" />
+  <Project Path="DungeonSurvival.vcxproj" Id="cd8b04f4-6481-4e1c-80f0-d5c53b9c7ed1" />
 </Solution>

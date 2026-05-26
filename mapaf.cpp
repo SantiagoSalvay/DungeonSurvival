@@ -230,7 +230,7 @@ void dibujarmapa(
                 ventana.draw(rectangulo);
             }
             else if (matrizFondo[i][j] == "1") {
-                //CAMBIAR ESTO:
+
                 // Paredes LATERALES (Izquierda o Derecha)
                 rectangulo.setTexture(texParedLado); // Usás tu única textura de pared
 

@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{cd8b04f4-6481-4e1c-80f0-d5c53b9c7ed1}</ProjectGuid>
+    <ProjectGuid>{CD8B04F4-6481-4E1C-80F0-D5C53B9C7ED1}</ProjectGuid>
     <RootNamespace>DungeonSurvival</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
@@ -156,11 +156,13 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="entidades.cpp" />
+    <ClCompile Include="funciones.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="mapaf.cpp" />
     <ClCompile Include="Menu.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="funciones.h" />
     <ClInclude Include="mapa.h" />
     <ClInclude Include="Menu.h" />
     <ClInclude Include="structs.h" />
