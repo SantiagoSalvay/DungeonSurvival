@@ -4,11 +4,14 @@
 #include <vector>
 #include <optional>
 #include "Menu.h"
+#include "Mapa.h"
+#include "funciones.h"
+#include "structs.h"
 
-enum EstadoPantalla { MENU_PRINCIPAL, JUGANDO, CARGAR, CONTROLES, REGLAS, CREDITOS };
+enum EstadoPantalla { MENU_PRINCIPAL, JUGANDO, CARGAR, CONTROLES, REGLAS, CREDITOS, EN_TIENDA, EN_BATALLA };
 
 int iniciarJuego() {
-    sf::RenderWindow window(sf::VideoMode({ 800, 600 }), "Dungeon Survival");
+    sf::RenderWindow window(sf::VideoMode({ 800, 800 }), "Dungeon Survival");
     window.setFramerateLimit(60);
 
     int itemSeleccionado = 0;
@@ -110,6 +113,23 @@ int iniciarJuego() {
 
     EstadoPantalla estadoActual = MENU_PRINCIPAL;
 
+    string matrizFondo[MAX_FILAS][MAX_COLUMNAS];
+    string matrizEntidades[MAX_FILAS][MAX_COLUMNAS];
+    cargarNivel(1, matrizFondo, matrizEntidades);
+
+    sf::Texture texSuelo, texParedLado, texParedAbajo, texProta, texBoss, texEnemigo, texMercader, texCofre, texSalida;
+    texSuelo.loadFromFile("suelo.jpg");
+    texParedLado.loadFromFile("customladrillo.png");
+    texParedAbajo.loadFromFile("customladrillo.png");
+    texProta.loadFromFile("prota_01.png");
+    texEnemigo.loadFromFile("Enemigo.png");
+    texMercader.loadFromFile("mercader.png");
+    texCofre.loadFromFile("cofre.png");
+    texSalida.loadFromFile("salida.png");
+    texBoss.loadFromFile("boss-01.png");
+    Personaje paolo;
+    Protagonista(paolo);
+
     while (window.isOpen()) {
         while (const std::optional event = window.pollEvent()) {
 
@@ -141,11 +161,44 @@ int iniciarJuego() {
                         estadoActual = MENU_PRINCIPAL;
                     }
                 }
+                //Gameplay
                 else if (estadoActual == JUGANDO) {
                     if (keyPressed->code == sf::Keyboard::Key::Num9 || keyPressed->code == sf::Keyboard::Key::Escape) {
                         estadoActual = MENU_PRINCIPAL;
                     }
+                    else if (keyPressed->code == sf::Keyboard::Key::W) {
+                        moverpj(paolo, 'W', matrizFondo, matrizEntidades);
+                    }
+                    else if (keyPressed->code == sf::Keyboard::Key::S) {
+                        moverpj(paolo, 'S', matrizFondo, matrizEntidades);
+                    }
+                    else if (keyPressed->code == sf::Keyboard::Key::A) {
+                        moverpj(paolo, 'A', matrizFondo, matrizEntidades);
+                    }
+                    else if (keyPressed->code == sf::Keyboard::Key::D) {
+                        moverpj(paolo, 'D', matrizFondo, matrizEntidades);
+                    }
+                    else if (keyPressed->code == sf::Keyboard::Key::E) {
+                        char resultado = interactuar(paolo,matrizEntidades,matrizFondo);
+
+                        if (resultado == 'S') {
+                            paolo.nivel_actual = paolo.nivel_actual + 1;
+                            cargarNivel(paolo.nivel_actual, matrizFondo, matrizEntidades);
+                            paolo.posicion_x = 1;
+                            paolo.posicion_y = 1;
+                        }
+                        else if (resultado == 'M') {
+                            estadoActual = EN_TIENDA;
+                        }
+                        else if (resultado == 'E' || resultado == 'B') {
+                            estadoActual == EN_BATALLA;
+                        }
+                    }
                 }
+                    
+                       
+
+                
             }
         }
 
@@ -171,14 +224,22 @@ int iniciarJuego() {
                 window.draw(textoCreditos);
             }
             else if (estadoActual == JUGANDO) {
-                sf::Text textoJuego(alagard);
-                textoJuego.setString("Explorando la mazmorra con Paolo...\n\n(Presiona 9 para salir al menu)");
-                textoJuego.setCharacterSize(26);
-                textoJuego.setPosition({ 200.0f, 250.0f });
-                textoJuego.setFillColor(sf::Color::White);
-                textoJuego.setOutlineThickness(2.0f);
-                textoJuego.setOutlineColor(sf::Color::Black);
-                window.draw(textoJuego);
+
+                
+                sf::View camaraJuego(sf::FloatRect({ 0.f, 0.f }, { 2540.f, 2540.f }));
+
+                
+                camaraJuego.setCenter(sf::Vector2f(1270.f, 1270.f));
+
+                
+                window.setView(camaraJuego);
+
+                
+                dibujarmapa(window, matrizFondo, matrizEntidades, texSuelo, texParedLado, texParedAbajo, texProta, texBoss, texEnemigo, texMercader, texCofre, texSalida);
+
+             
+
+                window.setView(window.getDefaultView());
             }
         }
 
@@ -188,7 +249,7 @@ int iniciarJuego() {
     return 0;
 }
 
-void inicializarMenu(std::vector<sf::Text>& opciones, const sf::Font& fuente, float ancho, float alto) {
+    void inicializarMenu(std::vector<sf::Text>&opciones, const sf::Font & fuente, float ancho, float alto) {
     std::vector<std::string> textos = { "Jugar", "Cargar Partida", "Controles", "Reglas", "Creditos", "Salir" };
 
     for (int i = 0; i < textos.size(); i++) {
