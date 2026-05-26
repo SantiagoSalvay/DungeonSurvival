@@ -173,7 +173,7 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
             {"1", "0", "0", "0", "0", "0", "0", "0", "0", "1"},
             {"1", "0", "0", "0", "0", "0", "0", "0", "0", "1"},
             {"1", "0", "0", "0", "0", "0", "0", "0", "0", "1"},
-            {"1", "0", "0", "0", "0", "0", "0", "0", "S", "1"},
+            {"1", "0", "0", "0", "0", "0", "0", "0", "0", "1"},
             {"2", "2", "2", "2", "2", "2", "2", "2", "2", "2"}
         };
 
@@ -215,21 +215,55 @@ void dibujarmapa(
     for (int i = 0; i < MAX_FILAS; i++) {
         for (int j = 0; j < MAX_COLUMNAS; j++) {
 
+           
             float posX = j * 254.f;
             float posY = i * 254.f;
-            rectangulo.setPosition({ posX, posY });
 
+            // IMPORTANTE: Resetear el origen y la rotación para que el piso y 
+            // los personajes no salgan rotados por culpa de la pared anterior.
+            rectangulo.setOrigin(sf::Vector2f(0.f, 0.f));
+            rectangulo.setRotation(sf::degrees(0.f));
+            rectangulo.setPosition({ posX, posY });
 
             if (matrizFondo[i][j] == "0") {
                 rectangulo.setTexture(texSuelo);
                 ventana.draw(rectangulo);
             }
             else if (matrizFondo[i][j] == "1") {
-                rectangulo.setTexture(texParedLado);
+                //CAMBIAR ESTO:
+                // Paredes LATERALES (Izquierda o Derecha)
+                rectangulo.setTexture(texParedLado); // Usás tu única textura de pared
+
+                // 1. Movemos el eje al centro de la imagen de 254x254
+                rectangulo.setOrigin(sf::Vector2f(127.f, 127.f));
+                // 2. Ajustamos la posición sumando la mitad para que no se desfase
+                rectangulo.setPosition({ posX + 127.f, posY + 127.f });
+
+                if (j == 0) {
+                    // Si la columna es 0, es la pared izquierda
+                    rectangulo.setRotation(sf::degrees(90.f));
+                }
+                else {
+                    // Si no es 0, es la pared derecha (columna 9)
+                    rectangulo.setRotation(sf::degrees(270.f));
+                }
                 ventana.draw(rectangulo);
             }
             else if (matrizFondo[i][j] == "2") {
-                rectangulo.setTexture(texParedAbajo);
+                // Paredes SUPERIOR o INFERIOR (Arriba o Abajo)
+                rectangulo.setTexture(texParedLado); // Seguimos reciclando la misma textura
+
+                rectangulo.setOrigin(sf::Vector2f(127.f, 127.f));
+                rectangulo.setPosition({ posX + 127.f, posY + 127.f });
+
+                if (i == 0) {
+                    // Si la fila es 0, es el techo
+                    rectangulo.setRotation(sf::degrees(180.f));
+                }
+                else {
+                    // Si la fila es 9, es el piso
+                    rectangulo.setRotation(sf::degrees(0.f));
+                }
                 ventana.draw(rectangulo);
             }
             else if (matrizFondo[i][j] == "S") {
