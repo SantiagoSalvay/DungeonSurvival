@@ -21,7 +21,7 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>18.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{EEE3D8B1-7880-0652-5F71-1BC61E7E4A32}</ProjectGuid>
+    <ProjectGuid>{CD8B04F4-6481-4E1C-80F0-D5C53B9C7ED1}</ProjectGuid>
     <RootNamespace>DungeonSurvival</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
