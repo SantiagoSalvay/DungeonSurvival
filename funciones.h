@@ -2,12 +2,21 @@
 #include "structs.h"
 #include "mapa.h"
 
-void Protagonista(Personaje& pj);
-void InicializarMercader(Mercader& vendedor);
-void AbrirCofre();
+// inicio
+void protagonista(personaje& pj);
+void inicializarmercader(mercader& vendedor);
 
+// Funciones de movimiento e interaccion en la matriz
+void moverpj(personaje& pj, char direccion, string matriz_fondo[max_filas][max_columnas], string matriz_entidades[max_filas][max_columnas]);
+char interactuar(personaje& pj, string matriz_entidades[max_filas][max_columnas], string matriz_fondo[max_filas][max_columnas]);
 
-void moverpj(Personaje& pj, char direccion, string matrizFondo[MAX_FILAS][MAX_COLUMNAS], string matrizEntidades[MAX_FILAS][MAX_COLUMNAS]);
-bool cofreabrir(Cofre& cofrepj);
-
-char interactuar(Personaje& pj, string matrizEntidades[MAX_FILAS][MAX_COLUMNAS], string matrizFondo[MAX_FILAS][MAX_COLUMNAS]);
+// Algoritmos
+void completar(string v[], int tam, int pos, string c[], int& k);
+int fusionar(string a[], int n, string b[], int m, string c[]);
+int obtenerprecioventa(string nombre_item);
+int buscaritem(string v[50], int n, string x);
+void ordenarburbuja(string v[50], int n);
+void ordenarmercader(string catalogo[6], int precios[6], int n);
+//fucniones para las stats
+int obtenerataque(string arma_nombre);
+int obtenerdefensa(string armadura_nombre);
