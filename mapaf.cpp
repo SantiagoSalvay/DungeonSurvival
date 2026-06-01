@@ -227,12 +227,12 @@ void dibujarmapa(
                 rectangulo.setTexture(tex_suelo);
                 ventana.draw(rectangulo);
             }
-<<<<<<< HEAD
+<<<<<<<<< Temporary merge branch 1
             else if (matrizFondo[i][j] == "1") {
 
-=======
+=========
             else if (matriz_fondo[i][j] == "1") {
->>>>>>> Oviedo
+>>>>>>>>> Temporary merge branch 2
                 // Paredes LATERALES (Izquierda o Derecha)
                 if (j == 0) {
                     rectangulo.setTexture(tex_pared_izq);
