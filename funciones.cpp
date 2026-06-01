@@ -1,5 +1,6 @@
 #include<iostream>
 #include <cstdlib>
+#include <ctime>
 #include "funciones.h"
 using namespace std;
 
@@ -230,4 +231,177 @@ int obtenerdefensa(string armadura_nombre) {
 	if (armadura_nombre == "Armadura Ligera") return 25; 
 	if (armadura_nombre == "Armadura Pesada") return 50; 
 	return 0;
+}
+
+namespace {
+	const char* archivo_partidas = "partidas.txt";
+
+	bool leerRegistro(std::istream& input, registro_partida& registro, string entidades[max_filas][max_columnas]) {
+		std::string linea;
+		if (!std::getline(input, linea)) return false;
+		if (linea != "#PARTIDA") return false;
+		if (!std::getline(input, registro.pj.name)) return false;
+		if (!std::getline(input, linea)) return false;
+		registro.ultimo_guardado = std::stoll(linea);
+		if (!std::getline(input, linea)) return false;
+		registro.pj.oro = std::stoi(linea);
+		if (!std::getline(input, linea)) return false;
+		registro.pj.vida = std::stoi(linea);
+		if (!std::getline(input, registro.pj.arma_equipada)) return false;
+		if (!std::getline(input, registro.pj.armadura_equipada)) return false;
+		if (!std::getline(input, linea)) return false;
+		registro.pj.ataque = std::stoi(linea);
+		if (!std::getline(input, linea)) return false;
+		registro.pj.defensa = std::stoi(linea);
+		if (!std::getline(input, linea)) return false;
+		registro.pj.nivel_actual = std::stoi(linea);
+		if (!std::getline(input, linea)) return false;
+		registro.pj.posicion_x = std::stoi(linea);
+		if (!std::getline(input, linea)) return false;
+		registro.pj.posicion_y = std::stoi(linea);
+		if (!std::getline(input, linea)) return false;
+		registro.pj.cant_items = std::stoi(linea);
+		for (int i = 0; i < registro.pj.cant_items; i++) {
+			if (!std::getline(input, registro.pj.inventario[i])) return false;
+		}
+		if (!std::getline(input, linea)) return false;
+		if (linea != "#ENTIDADES") return false;
+		for (int i = 0; i < max_filas; i++) {
+			for (int j = 0; j < max_columnas; j++) {
+				if (!std::getline(input, entidades[i][j])) return false;
+			}
+		}
+		return true;
+	}
+
+	void escribirregistro(std::ostream& output, const registro_partida& registro, const string (&entidades)[max_filas][max_columnas]) {
+		output << "#PARTIDA\n";
+		output << registro.pj.name << "\n";
+		output << registro.ultimo_guardado << "\n";
+		output << registro.pj.oro << "\n";
+		output << registro.pj.vida << "\n";
+		output << registro.pj.arma_equipada << "\n";
+		output << registro.pj.armadura_equipada << "\n";
+		output << registro.pj.ataque << "\n";
+		output << registro.pj.defensa << "\n";
+		output << registro.pj.nivel_actual << "\n";
+		output << registro.pj.posicion_x << "\n";
+		output << registro.pj.posicion_y << "\n";
+		output << registro.pj.cant_items << "\n";
+		for (int i = 0; i < registro.pj.cant_items; i++) {
+			output << registro.pj.inventario[i] << "\n";
+		}
+		output << "#ENTIDADES\n";
+		for (int i = 0; i < max_filas; i++) {
+			for (int j = 0; j < max_columnas; j++) {
+				output << entidades[i][j] << "\n";
+			}
+		}
+	}
+
+	long long tiempoAhora() {
+		return static_cast<long long>(std::time(nullptr));
+	}
+}
+
+std::vector<registro_partida> obtenerPartidas() {
+	std::vector<registro_partida> partidas;
+	std::ifstream archivo(archivo_partidas);
+	if (!archivo.is_open()) {
+		return partidas;
+	}
+	while (archivo.good()) {
+		registro_partida registro;
+		if (!leerRegistro(archivo, registro, registro.entidades)) {
+			break;
+		}
+		partidas.push_back(registro);
+	}
+	return partidas;
+}
+
+void guardarPartida(const personaje& pj, string matriz_entidades[max_filas][max_columnas]) {
+	std::vector<registro_partida> partidas = obtenerPartidas();
+	bool actualizado = false;
+	for (auto& registro : partidas) {
+		if (registro.pj.name == pj.name) {
+			registro.pj = pj;
+			for (int i = 0; i < max_filas; i++) {
+				for (int j = 0; j < max_columnas; j++) {
+					registro.entidades[i][j] = matriz_entidades[i][j];
+				}
+			}
+			registro.ultimo_guardado = tiempoAhora();
+			actualizado = true;
+			break;
+		}
+	}
+	if (!actualizado) {
+		registro_partida nuevo;
+		nuevo.pj = pj;
+		for (int i = 0; i < max_filas; i++) {
+			for (int j = 0; j < max_columnas; j++) {
+				nuevo.entidades[i][j] = matriz_entidades[i][j];
+			}
+		}
+		nuevo.ultimo_guardado = tiempoAhora();
+		partidas.push_back(nuevo);
+	}
+	std::ofstream archivo(archivo_partidas, std::ios::trunc);
+	if (!archivo.is_open()) {
+		return;
+	}
+	for (const auto& registro : partidas) {
+		escribirregistro(archivo, registro, registro.entidades);
+	}
+}
+
+bool cargarPartida(personaje& pj, string matriz_entidades[max_filas][max_columnas]) {
+	std::vector<registro_partida> partidas = obtenerPartidas();
+	if (partidas.empty()) {
+		return false;
+	}
+	int indice_seleccion = 0;
+	for (int i = 1; i < static_cast<int>(partidas.size()); i++) {
+		if (partidas[i].ultimo_guardado > partidas[indice_seleccion].ultimo_guardado) {
+			indice_seleccion = i;
+		}
+	}
+	pj = partidas[indice_seleccion].pj;
+	for (int i = 0; i < max_filas; i++) {
+		for (int j = 0; j < max_columnas; j++) {
+			matriz_entidades[i][j] = partidas[indice_seleccion].entidades[i][j];
+		}
+	}
+	return true;
+}
+
+bool cargarPartidaPorIndice(personaje& pj, int indice, string matriz_entidades[max_filas][max_columnas]) {
+	std::vector<registro_partida> partidas = obtenerPartidas();
+	if (indice < 0 || indice >= static_cast<int>(partidas.size())) {
+		return false;
+	}
+	pj = partidas[indice].pj;
+	for (int i = 0; i < max_filas; i++) {
+		for (int j = 0; j < max_columnas; j++) {
+			matriz_entidades[i][j] = partidas[indice].entidades[i][j];
+		}
+	}
+	return true;
+}
+
+bool eliminarPartidaPorIndice(int indice) {
+	std::vector<registro_partida> partidas = obtenerPartidas();
+	if (indice < 0 || indice >= static_cast<int>(partidas.size())) {
+		return false;
+	}
+	partidas.erase(partidas.begin() + indice);
+	std::ofstream archivo(archivo_partidas, std::ios::trunc);
+	if (!archivo.is_open()) {
+		return false;
+	}
+	for (const auto& registro : partidas) {
+		escribirregistro(archivo, registro, registro.entidades);
+	}
+	return true;
 }

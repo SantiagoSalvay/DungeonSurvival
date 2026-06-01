@@ -3,12 +3,14 @@
 #include <iostream>
 #include <vector>
 #include <optional>
+#include <algorithm>
+#include <sstream>
 #include "Menu.h"
 #include "Mapa.h"
 #include "funciones.h"
 #include "structs.h"
 
-enum estado_pantalla { menu_principal, jugando, cargar, controles, reglas, creditos, en_tienda, en_batalla, en_inventario };
+enum estado_pantalla { menu_principal, jugando, cargar, controles, reglas, creditos, en_tienda, en_batalla, en_inventario, confirmar_guardado, aviso_guardado };
 
 int iniciarjuego() {
     sf::RenderWindow window(sf::VideoMode({ 800, 800 }), "Dungeon Survival");
@@ -18,10 +20,10 @@ int iniciarjuego() {
     std::vector<sf::Text> opciones_menu;
 
     sf::Font alagard;
-    alagard.openFromFile("medieval.ttf");
+    (void)alagard.openFromFile("medieval.ttf");
 
     sf::Texture textura_fondo;
-    textura_fondo.loadFromFile("fondo.png");
+    (void)textura_fondo.loadFromFile("fondo.png");
     sf::Sprite sprite_fondo(textura_fondo);
 
     inicializarmenu(opciones_menu, alagard, static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y));
@@ -32,7 +34,11 @@ int iniciarjuego() {
     texto_titulo.setFillColor(sf::Color::White);
     texto_titulo.setOutlineThickness(4.0f);
     texto_titulo.setOutlineColor(sf::Color::Black);
-    texto_titulo.setPosition({ (window.getSize().x / 2.0f) - 280.0f, 40.0f });
+    {
+        auto bounds = texto_titulo.getLocalBounds();
+        texto_titulo.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+    }
+    texto_titulo.setPosition({ window.getSize().x / 2.0f, 40.0f });
 
     sf::RectangleShape panel_menu({ 280.0f, 330.0f });
     panel_menu.setPosition({ 260.0f, 200.0f });
@@ -68,6 +74,11 @@ int iniciarjuego() {
     texto_reglas.setLineSpacing(spacing_amount);
     texto_reglas.setOutlineThickness(outline_thickness);
     texto_reglas.setOutlineColor(outline_color);
+    {
+        auto bounds = texto_reglas.getLocalBounds();
+        texto_reglas.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+        texto_reglas.setPosition({ window.getSize().x / 2.0f, 60.0f });
+    }
 
     sf::Text texto_controles(alagard);
     texto_controles.setString("============ MANUAL DE CONTROLES ============\n\n"
@@ -88,6 +99,11 @@ int iniciarjuego() {
     texto_controles.setLineSpacing(spacing_amount);
     texto_controles.setOutlineThickness(outline_thickness);
     texto_controles.setOutlineColor(outline_color);
+    {
+        auto bounds = texto_controles.getLocalBounds();
+        texto_controles.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+        texto_controles.setPosition({ window.getSize().x / 2.0f, 60.0f });
+    }
 
     sf::Text texto_creditos(alagard);
     texto_creditos.setString("================ CREDITOS ================\n\n"
@@ -105,6 +121,11 @@ int iniciarjuego() {
     texto_creditos.setLineSpacing(spacing_amount);
     texto_creditos.setOutlineThickness(outline_thickness);
     texto_creditos.setOutlineColor(outline_color);
+    {
+        auto bounds = texto_creditos.getLocalBounds();
+        texto_creditos.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+        texto_creditos.setPosition({ window.getSize().x / 2.0f, 60.0f });
+    }
 
     estado_pantalla estado_actual = menu_principal;
 
@@ -113,17 +134,17 @@ int iniciarjuego() {
     cargarnivel(1, matriz_fondo, matriz_entidades);
 
     sf::Texture tex_suelo, tex_pared_arriba, tex_pared_abajo, tex_pared_izq, tex_pared_der, tex_prota, tex_boss, tex_enemigo, tex_mercader, tex_cofre, tex_salida;
-    tex_suelo.loadFromFile("suelo.jpg");
-    tex_pared_izq.loadFromFile("customladrillo.png");
-    tex_pared_abajo.loadFromFile("customladrillo.png");
-    tex_pared_der.loadFromFile("customladrillo.png");
-    tex_pared_arriba.loadFromFile("customladrillo.png");
-    tex_prota.loadFromFile("prota_01.png");
-    tex_enemigo.loadFromFile("Enemigo.png");
-    tex_mercader.loadFromFile("mercader.png");
-    tex_cofre.loadFromFile("cofre.png");
-    tex_salida.loadFromFile("salida.png");
-    tex_boss.loadFromFile("boss-01.png");
+    (void)tex_suelo.loadFromFile("suelo.jpg");
+    (void)tex_pared_izq.loadFromFile("customladrillo.png");
+    (void)tex_pared_abajo.loadFromFile("customladrillo.png");
+    (void)tex_pared_der.loadFromFile("customladrillo.png");
+    (void)tex_pared_arriba.loadFromFile("customladrillo.png");
+    (void)tex_prota.loadFromFile("prota_01.png");
+    (void)tex_enemigo.loadFromFile("Enemigo.png");
+    (void)tex_mercader.loadFromFile("mercader.png");
+    (void)tex_cofre.loadFromFile("cofre.png");
+    (void)tex_salida.loadFromFile("salida.png");
+    (void)tex_boss.loadFromFile("boss-01.png");
 
     personaje paolo;
     protagonista(paolo);
@@ -136,6 +157,95 @@ int iniciarjuego() {
     int cursor_inventario = 0;
     bool en_modo_compra = true;
     bool aviso_puerta = false;
+
+    bool en_pausa = false;
+    int item_pausa = 0;
+    std::vector<sf::Text> opciones_pausa;
+    std::vector<std::string> textos_pausa = { "Seguir Jugando", "Guardar Partida", "Ver Controles", "Volver al Menu" };
+
+    for (int i = 0; i < textos_pausa.size(); i++) {
+        sf::Text texto(alagard);
+        texto.setString(textos_pausa[i]);
+        texto.setCharacterSize(30);
+        if (i == 0) texto.setFillColor(sf::Color::Red);
+        else texto.setFillColor(sf::Color::White);
+        texto.setPosition({ 260.0f, 350.0f + (i * 45.0f) });
+        opciones_pausa.push_back(texto);
+    }
+
+    sf::Text texto_pausa_titulo(alagard);
+    texto_pausa_titulo.setString("JUEGO EN PAUSA");
+    texto_pausa_titulo.setCharacterSize(45);
+    texto_pausa_titulo.setFillColor(sf::Color::Yellow);
+    {
+        auto bounds = texto_pausa_titulo.getLocalBounds();
+        texto_pausa_titulo.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+    }
+    texto_pausa_titulo.setPosition({ window.getSize().x / 2.0f, 250.0f });
+
+    sf::RectangleShape fondo_pausa({ 460.0f, 340.0f });
+    fondo_pausa.setFillColor(sf::Color(0, 0, 0, 220));
+    fondo_pausa.setPosition({ 180.0f, 220.0f });
+    fondo_pausa.setOutlineColor(sf::Color::White);
+    fondo_pausa.setOutlineThickness(2.0f);
+
+    sf::RectangleShape fondo_confirmacion({ 560.0f, 240.0f });
+    fondo_confirmacion.setFillColor(sf::Color(0, 0, 0, 230));
+    fondo_confirmacion.setOrigin({ 280.0f, 120.0f });
+    fondo_confirmacion.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f });
+    fondo_confirmacion.setOutlineColor(sf::Color::White);
+    fondo_confirmacion.setOutlineThickness(2.0f);
+
+    sf::RectangleShape fondo_aviso_guardado({ 520.0f, 160.0f });
+    fondo_aviso_guardado.setFillColor(sf::Color(0, 0, 0, 230));
+    fondo_aviso_guardado.setPosition({ 140.0f, 320.0f });
+    fondo_aviso_guardado.setOutlineColor(sf::Color::White);
+    fondo_aviso_guardado.setOutlineThickness(2.0f);
+
+    sf::Text texto_guardado_titulo(alagard);
+    texto_guardado_titulo.setString("Partida guardada correctamente");
+    texto_guardado_titulo.setCharacterSize(28);
+    texto_guardado_titulo.setFillColor(sf::Color::Green);
+    texto_guardado_titulo.setPosition({ 260.0f, 350.0f });
+
+    sf::Text texto_guardado_subtitulo(alagard);
+    texto_guardado_subtitulo.setString("ENTER para continuar");
+    texto_guardado_subtitulo.setCharacterSize(18);
+    texto_guardado_subtitulo.setFillColor(sf::Color(200, 200, 200));
+    texto_guardado_subtitulo.setPosition({ 250.0f, 390.0f });
+
+    sf::Text texto_confirmacion_titulo(alagard);
+    texto_confirmacion_titulo.setString("Quieres guardar la partida?");
+    texto_confirmacion_titulo.setCharacterSize(30);
+    texto_confirmacion_titulo.setFillColor(sf::Color::Yellow);
+    {
+        auto bounds = texto_confirmacion_titulo.getLocalBounds();
+        texto_confirmacion_titulo.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+    }
+    float confirmacion_y = window.getSize().y / 2.0f;
+    texto_confirmacion_titulo.setPosition({ window.getSize().x / 2.0f, confirmacion_y - 70.0f });
+
+    std::vector<sf::Text> opciones_confirmacion;
+    std::vector<std::string> textos_confirmacion = { "Si", "No" };
+    for (int i = 0; i < textos_confirmacion.size(); i++) {
+        sf::Text texto(alagard);
+        texto.setString(textos_confirmacion[i]);
+        texto.setCharacterSize(28);
+        texto.setFillColor(i == 0 ? sf::Color::Red : sf::Color::White);
+        auto bounds = texto.getLocalBounds();
+        texto.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+        texto.setPosition({ window.getSize().x / 2.0f, confirmacion_y - 5.0f + (i * 45.0f) });
+        opciones_confirmacion.push_back(texto);
+    }
+
+    int item_confirmacion = 0;
+    bool salir_despues_confirmacion = false;
+    bool guardado_reciente = false;
+    estado_pantalla estado_pendiente = jugando;
+
+    std::vector<registro_partida> partidas_guardadas;
+    std::vector<sf::Text> opciones_carga;
+    int item_carga = 0;
 
     while (window.isOpen()) {
         while (const std::optional event = window.pollEvent()) {
@@ -155,11 +265,49 @@ int iniciarjuego() {
                     else if (key_pressed->code == sf::Keyboard::Key::Enter) {
                         switch (item_seleccionado) {
                         case 0: estado_actual = jugando; break;
-                        case 1: std::cout << "Aqui ira Cargar Partida..." << std::endl; break;
+                        case 1:
+                            partidas_guardadas = obtenerPartidas();
+                            std::sort(partidas_guardadas.begin(), partidas_guardadas.end(), [](const registro_partida& a, const registro_partida& b) {
+                                return a.ultimo_guardado > b.ultimo_guardado;
+                            });
+                            opciones_carga.clear();
+                            item_carga = 0;
+                            for (int i = 0; i < static_cast<int>(partidas_guardadas.size()); i++) {
+                                const auto& registro = partidas_guardadas[i];
+                                std::ostringstream linea;
+                                linea << (i + 1) << ") " << registro.pj.name
+                                    << " - Nivel " << registro.pj.nivel_actual
+                                    << " - Oro " << registro.pj.oro;
+                                sf::Text texto(alagard);
+                                texto.setString(linea.str());
+                                texto.setCharacterSize(24);
+                                texto.setFillColor(i == 0 ? sf::Color::Red : sf::Color::White);
+                                auto bounds = texto.getLocalBounds();
+                                texto.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+                                texto.setPosition({ window.getSize().x / 2.0f, 180.0f + (i * 35.0f) });
+                                opciones_carga.push_back(texto);
+                            }
+                            estado_actual = cargar;
+                            break;
                         case 2: estado_actual = controles; break;
                         case 3: estado_actual = reglas; break;
                         case 4: estado_actual = creditos; break;
                         case 5: window.close(); break;
+                        }
+                    }
+                }
+                else if (estado_actual == cargar && opciones_carga.empty()) {
+                    if (key_pressed->code == sf::Keyboard::Key::Enter || key_pressed->code == sf::Keyboard::Key::Escape) {
+                        estado_actual = menu_principal;
+                    }
+                }
+                else if (estado_actual == aviso_guardado) {
+                    if (key_pressed->code == sf::Keyboard::Key::Enter || key_pressed->code == sf::Keyboard::Key::Escape) {
+                        estado_actual = estado_pendiente;
+                        if (salir_despues_confirmacion) {
+                            estado_actual = menu_principal;
+                            en_pausa = false;
+                            salir_despues_confirmacion = false;
                         }
                     }
                 }
@@ -168,57 +316,163 @@ int iniciarjuego() {
                         estado_actual = menu_principal;
                     }
                 }
-                else if (estado_actual == jugando) {
-                    if (key_pressed->code == sf::Keyboard::Key::Num9 || key_pressed->code == sf::Keyboard::Key::Escape) {
+                else if (estado_actual == cargar) {
+                    if (key_pressed->code == sf::Keyboard::Key::Escape) {
                         estado_actual = menu_principal;
                     }
-                    else if (key_pressed->code == sf::Keyboard::Key::Num5) {
-                        estado_actual = en_inventario;
-                        cursor_inventario = 0;
+                    else if (key_pressed->code == sf::Keyboard::Key::W || key_pressed->code == sf::Keyboard::Key::Up) {
+                        moverarriba(item_carga, opciones_carga);
                     }
-                    else if (key_pressed->code == sf::Keyboard::Key::Num6) {
-                        ordenarburbuja(paolo.inventario, paolo.cant_items);
-                        std::cout << "Inventario Ordenado!" << std::endl;
+                    else if (key_pressed->code == sf::Keyboard::Key::S || key_pressed->code == sf::Keyboard::Key::Down) {
+                        moverabajo(item_carga, opciones_carga);
                     }
-                    else if (key_pressed->code == sf::Keyboard::Key::W) {
-                        moverpj(paolo, 'W', matriz_fondo, matriz_entidades);
-                        aviso_puerta = false;
+                    else if (key_pressed->code == sf::Keyboard::Key::Enter) {
+                        if (item_carga >= 0 && item_carga < static_cast<int>(partidas_guardadas.size())) {
+                            const registro_partida& partida_seleccionada = partidas_guardadas[item_carga];
+                            cargarPartidaPorIndice(paolo, item_carga, matriz_entidades);
+                            string matriz_entidades_base[max_filas][max_columnas];
+                            cargarnivel(paolo.nivel_actual, matriz_fondo, matriz_entidades_base);
+                            for (int i = 0; i < max_filas; i++) {
+                                for (int j = 0; j < max_columnas; j++) {
+                                    if (matriz_entidades[i][j] == "P") {
+                                        matriz_entidades[i][j] = "";
+                                    }
+                                }
+                            }
+                            if (paolo.posicion_y >= 0 && paolo.posicion_y < max_filas &&
+                                paolo.posicion_x >= 0 && paolo.posicion_x < max_columnas) {
+                                matriz_entidades[paolo.posicion_y][paolo.posicion_x] = "P";
+                            }
+                            estado_actual = jugando;
+                        }
                     }
-                    else if (key_pressed->code == sf::Keyboard::Key::S) {
-                        moverpj(paolo, 'S', matriz_fondo, matriz_entidades);
-                        aviso_puerta = false;
+                }
+                else if (estado_actual == confirmar_guardado) {
+                    if (key_pressed->code == sf::Keyboard::Key::W || key_pressed->code == sf::Keyboard::Key::Up) {
+                        moverarriba(item_confirmacion, opciones_confirmacion);
                     }
-                    else if (key_pressed->code == sf::Keyboard::Key::A) {
-                        moverpj(paolo, 'A', matriz_fondo, matriz_entidades);
-                        aviso_puerta = false;
+                    else if (key_pressed->code == sf::Keyboard::Key::S || key_pressed->code == sf::Keyboard::Key::Down) {
+                        moverabajo(item_confirmacion, opciones_confirmacion);
                     }
-                    else if (key_pressed->code == sf::Keyboard::Key::D) {
-                        moverpj(paolo, 'D', matriz_fondo, matriz_entidades);
-                        aviso_puerta = false;
+                    else if (key_pressed->code == sf::Keyboard::Key::Enter) {
+                        if (item_confirmacion == 0) {
+                            guardarPartida(paolo, matriz_entidades);
+                            guardado_reciente = true;
+                            estado_actual = aviso_guardado;
+                            break;
+                        }
+                        estado_actual = estado_pendiente;
+                        if (salir_despues_confirmacion) {
+                            estado_actual = menu_principal;
+                            en_pausa = false;
+                        }
                     }
-                    else if (key_pressed->code == sf::Keyboard::Key::E) {
-                        char resultado = interactuar(paolo, matriz_entidades, matriz_fondo);
+                }
+                else if (estado_actual == jugando) {
 
-                        if (resultado == 'S') {
-                            paolo.nivel_actual = paolo.nivel_actual + 1;
-                            cargarnivel(paolo.nivel_actual, matriz_fondo, matriz_entidades);
-                            paolo.posicion_x = 1;
-                            paolo.posicion_y = 1;
-                            aviso_puerta = false;
+                    if (en_pausa) {
+                        // --- CONTROL CON EL JUEGO PAUSADO ---
+                        if (key_pressed->code == sf::Keyboard::Key::W || key_pressed->code == sf::Keyboard::Key::Up) {
+                            moverarriba(item_pausa, opciones_pausa);
                         }
-                        else if (resultado == 'L') {
-                            aviso_puerta = true;
+                        else if (key_pressed->code == sf::Keyboard::Key::S || key_pressed->code == sf::Keyboard::Key::Down) {
+                            moverabajo(item_pausa, opciones_pausa);
                         }
-                        else if (resultado == 'M') {
-                            estado_actual = en_tienda;
-                            cursor_tienda = 0;
+                        else if (key_pressed->code == sf::Keyboard::Key::Enter) {
+                            switch (item_pausa) {
+                            case 0: // Seguir Jugando
+                                en_pausa = false;
+                                break;
+                            case 1: // Guardar Partida
+                                guardarPartida(paolo, matriz_entidades);
+                                guardado_reciente = true;
+                                estado_pendiente = jugando;
+                                estado_actual = aviso_guardado;
+                                break;
+                            case 2: // Ver Controles
+                                estado_actual = controles;
+                                en_pausa = false;
+                                break;
+                            case 3: // Volver al Menu
+                                if (guardado_reciente) {
+                                    estado_actual = menu_principal;
+                                    en_pausa = false;
+                                    guardado_reciente = false;
+                                }
+                                else {
+                                    item_confirmacion = 0;
+                                    opciones_confirmacion[0].setFillColor(sf::Color::Red);
+                                    opciones_confirmacion[1].setFillColor(sf::Color::White);
+                                    estado_pendiente = jugando;
+                                    salir_despues_confirmacion = true;
+                                    estado_actual = confirmar_guardado;
+                                }
+                                break;
+                            }
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::Escape) {
+                            en_pausa = false; // Despausar también con Escape
+                        }
+                    }
+                    else {
+                        // --- CONTROL DE EXPLORACIÓN NORMAL (Tu código base) ---
+                        if (key_pressed->code == sf::Keyboard::Key::Num9) {
+                            estado_actual = menu_principal;
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::Escape) {
+                            en_pausa = true; // Ahora Escape activa la pausa en lugar de salir directo
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::Num5) {
+                            estado_actual = en_inventario;
                             cursor_inventario = 0;
-                            en_modo_compra = true;
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::Num6) {
+                            ordenarburbuja(paolo.inventario, paolo.cant_items);
+                            std::cout << "Inventario Ordenado!" << std::endl;
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::Num8) {
+                            guardarPartida(paolo, matriz_entidades);
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::W) {
+                            moverpj(paolo, 'W', matriz_fondo, matriz_entidades);
                             aviso_puerta = false;
                         }
-                        else if (resultado == 'E' || resultado == 'B') {
-                            estado_actual = en_batalla;
+                        else if (key_pressed->code == sf::Keyboard::Key::S) {
+                            moverpj(paolo, 'S', matriz_fondo, matriz_entidades);
                             aviso_puerta = false;
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::A) {
+                            moverpj(paolo, 'A', matriz_fondo, matriz_entidades);
+                            aviso_puerta = false;
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::D) {
+                            moverpj(paolo, 'D', matriz_fondo, matriz_entidades);
+                            aviso_puerta = false;
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::E) {
+                            char resultado = interactuar(paolo, matriz_entidades, matriz_fondo);
+
+                            if (resultado == 'S') {
+                                paolo.nivel_actual = paolo.nivel_actual + 1;
+                                cargarnivel(paolo.nivel_actual, matriz_fondo, matriz_entidades);
+                                paolo.posicion_x = 1;
+                                paolo.posicion_y = 1;
+                                aviso_puerta = false;
+                            }
+                            else if (resultado == 'L') {
+                                aviso_puerta = true;
+                            }
+                            else if (resultado == 'M') {
+                                estado_actual = en_tienda;
+                                cursor_tienda = 0;
+                                cursor_inventario = 0;
+                                en_modo_compra = true;
+                                aviso_puerta = false;
+                            }
+                            else if (resultado == 'E' || resultado == 'B') {
+                                estado_actual = en_batalla;
+                                aviso_puerta = false;
+                            }
                         }
                     }
                 }
@@ -370,6 +624,67 @@ int iniciarjuego() {
                     texto_aviso.setFillColor(sf::Color::Red);
                     window.draw(texto_aviso);
                 }
+
+                if (en_pausa) {
+                    window.draw(fondo_pausa);
+                    window.draw(texto_pausa_titulo);
+                    for (const auto& texto_opcion : opciones_pausa) {
+                        window.draw(texto_opcion);
+                    }
+                }
+            }
+            else if (estado_actual == cargar) {
+                sf::Text titulo_cargar(alagard);
+                titulo_cargar.setString("SELECCIONAR PARTIDA");
+                titulo_cargar.setCharacterSize(35);
+                {
+                    auto bounds = titulo_cargar.getLocalBounds();
+                    titulo_cargar.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+                }
+                titulo_cargar.setPosition({ window.getSize().x / 2.0f, 80.0f });
+                titulo_cargar.setFillColor(sf::Color::Yellow);
+                window.draw(titulo_cargar);
+
+                if (opciones_carga.empty()) {
+                    sf::Text sin_partidas(alagard);
+                    sin_partidas.setString("No hay partidas guardadas");
+                    sin_partidas.setCharacterSize(24);
+                    {
+                        auto bounds = sin_partidas.getLocalBounds();
+                        sin_partidas.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+                    }
+                    sin_partidas.setPosition({ window.getSize().x / 2.0f, 200.0f });
+                    sin_partidas.setFillColor(sf::Color::White);
+                    window.draw(sin_partidas);
+
+                    sf::Text volver(alagard);
+                    volver.setString("ENTER o ESC para volver");
+                    volver.setCharacterSize(18);
+                    {
+                        auto bounds = volver.getLocalBounds();
+                        volver.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+                    }
+                    volver.setPosition({ window.getSize().x / 2.0f, 250.0f });
+                    volver.setFillColor(sf::Color(200, 200, 200));
+                    window.draw(volver);
+                }
+                else {
+                    for (const auto& opcion : opciones_carga) {
+                        window.draw(opcion);
+                    }
+                }
+            }
+            else if (estado_actual == confirmar_guardado) {
+                window.draw(fondo_confirmacion);
+                window.draw(texto_confirmacion_titulo);
+                for (const auto& opcion : opciones_confirmacion) {
+                    window.draw(opcion);
+                }
+            }
+            else if (estado_actual == aviso_guardado) {
+                window.draw(fondo_aviso_guardado);
+                window.draw(texto_guardado_titulo);
+                window.draw(texto_guardado_subtitulo);
             }
             else if (estado_actual == en_inventario) {
                 sf::Text titulo_inv(alagard);
@@ -503,7 +818,9 @@ void inicializarmenu(std::vector<sf::Text>& opciones, const sf::Font& fuente, fl
         if (i == 0) texto.setFillColor(sf::Color::Red);
         else texto.setFillColor(sf::Color::White);
 
-        texto.setPosition({ (ancho / 2.0f) - 80.0f, 230.0f + (i * 45.0f) });
+        auto bounds = texto.getLocalBounds();
+        texto.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+        texto.setPosition({ ancho / 2.0f, 230.0f + (i * 45.0f) });
         opciones.push_back(texto);
     }
 }
