@@ -3,11 +3,12 @@
 #include <string>
 #pragma once
 
-int iniciarJuego();
+int iniciarjuego();
 
-const int MAX_ITEMS = 6;
+const int max_items = 6;
 
-void inicializarMenu(std::vector<sf::Text>& opciones, const sf::Font& fuente, float width, float height);
-void moverArriba(int& itemSeleccionado, std::vector<sf::Text>& opciones);
-void moverAbajo(int& itemSeleccionado, std::vector<sf::Text>& opciones);
-void dibujarMenu(sf::RenderWindow& window, const std::vector<sf::Text>& opciones);
+// Funciones para manejar el dibujo y movimiento del menu
+void inicializarmenu(std::vector<sf::Text>& opciones, const sf::Font& fuente, float width, float height);
+void moverarriba(int& item_seleccionado, std::vector<sf::Text>& opciones);
+void moverabajo(int& item_seleccionado, std::vector<sf::Text>& opciones);
+void dibujarmenu(sf::RenderWindow& window, const std::vector<sf::Text>& opciones);

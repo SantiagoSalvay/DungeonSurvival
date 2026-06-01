@@ -4,21 +4,19 @@
 
 using namespace std;
 
-void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], string entidadesDestino[MAX_FILAS][MAX_COLUMNAS]) {
+void cargarnivel(int numero_nivel, string fondo_destino[max_filas][max_columnas], string entidades_destino[max_filas][max_columnas]) {
 
-
-
-    for (int i = 0; i < MAX_FILAS; i++) {
-        for (int j = 0; j < MAX_COLUMNAS; j++) {
-            fondoDestino[i][j] = "0";
-            entidadesDestino[i][j] = "";
+    for (int i = 0; i < max_filas; i++) {
+        for (int j = 0; j < max_columnas; j++) {
+            fondo_destino[i][j] = "0";
+            entidades_destino[i][j] = "";
         }
     }
 
-    switch (numeroNivel) {
+    switch (numero_nivel) {
     case 1: {
 
-        string fondo[MAX_FILAS][MAX_COLUMNAS] = {
+        string fondo[max_filas][max_columnas] = {
             {"2", "2", "2", "2", "2", "2", "2", "2", "2", "2"},
             {"1", "0", "0", "0", "0", "0", "0", "0", "0", "1"},
             {"1", "0", "0", "0", "0", "0", "0", "0", "0", "1"},
@@ -31,7 +29,7 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
             {"2", "2", "2", "2", "2", "2", "2", "2", "2", "2"}
         };
 
-        string entidades[MAX_FILAS][MAX_COLUMNAS] = {
+        string entidades[max_filas][max_columnas] = {
             {"", "", "", "", "", "", "", "", "", ""},
             {"", "P", "", "", "", "", "", "", "", ""},
             {"", "", "", "", "", "", "", "", "", ""},
@@ -44,17 +42,17 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
             {"", "", "", "", "", "", "", "", "", ""}
         };
 
-        for (int i = 0; i < MAX_FILAS; i++) {
-            for (int j = 0; j < MAX_COLUMNAS; j++) {
-                fondoDestino[i][j] = fondo[i][j];
-                entidadesDestino[i][j] = entidades[i][j];
+        for (int i = 0; i < max_filas; i++) {
+            for (int j = 0; j < max_columnas; j++) {
+                fondo_destino[i][j] = fondo[i][j];
+                entidades_destino[i][j] = entidades[i][j];
             }
         }
         break;
     }
 
     case 2: {
-        string fondo[MAX_FILAS][MAX_COLUMNAS] = {
+        string fondo[max_filas][max_columnas] = {
             {"2", "2", "2", "2", "2", "2", "2", "2", "2", "2"},
             {"1", "0", "0", "0", "0", "0", "0", "0", "0", "1"},
             {"1", "0", "1", "0", "0", "0", "0", "1", "0", "1"},
@@ -67,7 +65,7 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
             {"2", "2", "2", "2", "2", "2", "2", "2", "2", "2"}
         };
 
-        string entidades[MAX_FILAS][MAX_COLUMNAS] = {
+        string entidades[max_filas][max_columnas] = {
             {"", "", "", "", "", "", "", "", "", ""},
             {"", "P", "", "", "", "", "", "", "", ""},
             {"", "", "", "", "E", "", "", "", "", ""},
@@ -80,10 +78,10 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
             {"", "", "", "", "", "", "", "", "", ""}
         };
 
-        for (int i = 0; i < MAX_FILAS; i++) {
-            for (int j = 0; j < MAX_COLUMNAS; j++) {
-                fondoDestino[i][j] = fondo[i][j];
-                entidadesDestino[i][j] = entidades[i][j];
+        for (int i = 0; i < max_filas; i++) {
+            for (int j = 0; j < max_columnas; j++) {
+                fondo_destino[i][j] = fondo[i][j];
+                entidades_destino[i][j] = entidades[i][j];
             }
         }
         break;
@@ -91,7 +89,7 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
 
     case 3: {
 
-        string fondo[MAX_FILAS][MAX_COLUMNAS] = {
+        string fondo[max_filas][max_columnas] = {
             {"2", "2", "2", "2", "2", "2", "2", "2", "2", "2"},
             {"1", "0", "0", "0", "1", "0", "0", "0", "0", "1"},
             {"1", "0", "0", "0", "1", "0", "0", "0", "0", "1"},
@@ -104,7 +102,7 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
             {"2", "2", "2", "2", "2", "2", "2", "2", "2", "2"}
         };
 
-        string entidades[MAX_FILAS][MAX_COLUMNAS] = {
+        string entidades[max_filas][max_columnas] = {
             {"", "", "", "", "", "", "", "", "", ""},
             {"", "P", "", "", "", "", "", "", "", ""},
             {"", "", "E", "", "", "", "E", "", "", ""},
@@ -117,10 +115,10 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
             {"", "", "", "", "", "", "", "", "", ""}
         };
 
-        for (int i = 0; i < MAX_FILAS; i++) {
-            for (int j = 0; j < MAX_COLUMNAS; j++) {
-                fondoDestino[i][j] = fondo[i][j];
-                entidadesDestino[i][j] = entidades[i][j];
+        for (int i = 0; i < max_filas; i++) {
+            for (int j = 0; j < max_columnas; j++) {
+                fondo_destino[i][j] = fondo[i][j];
+                entidades_destino[i][j] = entidades[i][j];
             }
         }
         break;
@@ -128,7 +126,7 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
 
     case 4: {
 
-        string fondo[MAX_FILAS][MAX_COLUMNAS] = {
+        string fondo[max_filas][max_columnas] = {
             {"2", "2", "2", "2", "2", "2", "2", "2", "2", "2"},
             {"1", "0", "0", "0", "0", "0", "0", "0", "0", "1"},
             {"1", "0", "0", "0", "0", "0", "0", "0", "0", "1"},
@@ -141,7 +139,7 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
             {"2", "2", "2", "2", "2", "2", "2", "2", "2", "2"}
         };
 
-        string entidades[MAX_FILAS][MAX_COLUMNAS] = {
+        string entidades[max_filas][max_columnas] = {
             {"", "", "", "", "", "", "", "", "", ""},
             {"", "P", "", "", "", "", "", "", "", ""},
             {"", "", "", "E", "", "", "E", "", "", ""},
@@ -154,17 +152,17 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
             {"", "", "", "", "", "", "", "", "", ""}
         };
 
-        for (int i = 0; i < MAX_FILAS; i++) {
-            for (int j = 0; j < MAX_COLUMNAS; j++) {
-                fondoDestino[i][j] = fondo[i][j];
-                entidadesDestino[i][j] = entidades[i][j];
+        for (int i = 0; i < max_filas; i++) {
+            for (int j = 0; j < max_columnas; j++) {
+                fondo_destino[i][j] = fondo[i][j];
+                entidades_destino[i][j] = entidades[i][j];
             }
         }
         break;
     }
 
     case 5: {
-        string fondo[MAX_FILAS][MAX_COLUMNAS] = {
+        string fondo[max_filas][max_columnas] = {
             {"2", "2", "2", "2", "2", "2", "2", "2", "2", "2"},
             {"1", "0", "0", "0", "0", "0", "0", "0", "0", "1"},
             {"1", "0", "0", "0", "0", "0", "0", "0", "0", "1"},
@@ -177,7 +175,7 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
             {"2", "2", "2", "2", "2", "2", "2", "2", "2", "2"}
         };
 
-        string entidades[MAX_FILAS][MAX_COLUMNAS] = {
+        string entidades[max_filas][max_columnas] = {
             {"", "", "", "", "", "", "", "", "", ""},
             {"", "P", "", "", "", "", "", "", "", ""},
             {"", "", "", "", "", "", "", "", "", ""},
@@ -190,10 +188,10 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
             {"", "", "", "", "", "", "", "", "", ""}
         };
 
-        for (int i = 0; i < MAX_FILAS; i++) {
-            for (int j = 0; j < MAX_COLUMNAS; j++) {
-                fondoDestino[i][j] = fondo[i][j];
-                entidadesDestino[i][j] = entidades[i][j];
+        for (int i = 0; i < max_filas; i++) {
+            for (int j = 0; j < max_columnas; j++) {
+                fondo_destino[i][j] = fondo[i][j];
+                entidades_destino[i][j] = entidades[i][j];
             }
         }
         break;
@@ -204,91 +202,78 @@ void cargarNivel(int numeroNivel, string fondoDestino[MAX_FILAS][MAX_COLUMNAS], 
 
 void dibujarmapa(
     sf::RenderWindow& ventana,
-    string matrizFondo[MAX_FILAS][MAX_COLUMNAS],
-    string matrizEntidades[MAX_FILAS][MAX_COLUMNAS],
-    sf::Texture& texSuelo, sf::Texture& texParedLado, sf::Texture& texParedAbajo,
-    sf::Texture& texProta, sf::Texture& texBoss, sf::Texture& texEnemigo,
-    sf::Texture& texMercader, sf::Texture& texCofre, sf::Texture& texSalida) {
+    string matriz_fondo[max_filas][max_columnas],
+    string matriz_entidades[max_filas][max_columnas],
+    sf::Texture& tex_suelo,
+    sf::Texture& tex_pared_arriba, sf::Texture& tex_pared_abajo,
+    sf::Texture& tex_pared_izq, sf::Texture& tex_pared_der,
+    sf::Texture& tex_prota, sf::Texture& tex_boss, sf::Texture& tex_enemigo,
+    sf::Texture& tex_mercader, sf::Texture& tex_cofre, sf::Texture& tex_salida) {
 
-    sf::Sprite rectangulo(texSuelo);
+    sf::Sprite rectangulo(tex_suelo);
 
-    for (int i = 0; i < MAX_FILAS; i++) {
-        for (int j = 0; j < MAX_COLUMNAS; j++) {
+    for (int i = 0; i < max_filas; i++) {
+        for (int j = 0; j < max_columnas; j++) {
 
-           
-            float posX = j * 254.f;
-            float posY = i * 254.f;
+            float pos_x = j * 254.f;
+            float pos_y = i * 254.f;
 
-            // IMPORTANTE: Resetear el origen y la rotación para que el piso y 
-            // los personajes no salgan rotados por culpa de la pared anterior.
+            // Ya no hace falta rotar ni desfasar nada, lo dejamos limpito
             rectangulo.setOrigin(sf::Vector2f(0.f, 0.f));
             rectangulo.setRotation(sf::degrees(0.f));
-            rectangulo.setPosition({ posX, posY });
+            rectangulo.setPosition({ pos_x, pos_y });
 
-            if (matrizFondo[i][j] == "0") {
-                rectangulo.setTexture(texSuelo);
+            if (matriz_fondo[i][j] == "0") {
+                rectangulo.setTexture(tex_suelo);
                 ventana.draw(rectangulo);
             }
+<<<<<<< HEAD
             else if (matrizFondo[i][j] == "1") {
 
+=======
+            else if (matriz_fondo[i][j] == "1") {
+>>>>>>> Oviedo
                 // Paredes LATERALES (Izquierda o Derecha)
-                rectangulo.setTexture(texParedLado); // Usás tu única textura de pared
-
-                // 1. Movemos el eje al centro de la imagen de 254x254
-                rectangulo.setOrigin(sf::Vector2f(127.f, 127.f));
-                // 2. Ajustamos la posición sumando la mitad para que no se desfase
-                rectangulo.setPosition({ posX + 127.f, posY + 127.f });
-
                 if (j == 0) {
-                    // Si la columna es 0, es la pared izquierda
-                    rectangulo.setRotation(sf::degrees(90.f));
+                    rectangulo.setTexture(tex_pared_izq);
                 }
                 else {
-                    // Si no es 0, es la pared derecha (columna 9)
-                    rectangulo.setRotation(sf::degrees(270.f));
+                    rectangulo.setTexture(tex_pared_der);
                 }
                 ventana.draw(rectangulo);
             }
-            else if (matrizFondo[i][j] == "2") {
+            else if (matriz_fondo[i][j] == "2") {
                 // Paredes SUPERIOR o INFERIOR (Arriba o Abajo)
-                rectangulo.setTexture(texParedLado); // Seguimos reciclando la misma textura
-
-                rectangulo.setOrigin(sf::Vector2f(127.f, 127.f));
-                rectangulo.setPosition({ posX + 127.f, posY + 127.f });
-
                 if (i == 0) {
-                    // Si la fila es 0, es el techo
-                    rectangulo.setRotation(sf::degrees(180.f));
+                    rectangulo.setTexture(tex_pared_arriba);
                 }
                 else {
-                    // Si la fila es 9, es el piso
-                    rectangulo.setRotation(sf::degrees(0.f));
+                    rectangulo.setTexture(tex_pared_abajo);
                 }
                 ventana.draw(rectangulo);
             }
-            else if (matrizFondo[i][j] == "S") {
-                rectangulo.setTexture(texSuelo);
+            else if (matriz_fondo[i][j] == "S") {
+                rectangulo.setTexture(tex_suelo);
                 ventana.draw(rectangulo);
-                rectangulo.setTexture(texSalida);
+                rectangulo.setTexture(tex_salida);
                 ventana.draw(rectangulo);
             }
 
-
-            if (matrizEntidades[i][j] != "") {
-                if (matrizEntidades[i][j] == "P") {
-                    rectangulo.setTexture(texProta);
+            if (matriz_entidades[i][j] != "") {
+                if (matriz_entidades[i][j] == "P") {
+                    rectangulo.setTexture(tex_prota);
                 }
-                else if (matrizEntidades[i][j] == "E") {
-                    rectangulo.setTexture(texEnemigo);
+                else if (matriz_entidades[i][j] == "E") {
+                    rectangulo.setTexture(tex_enemigo);
                 }
-                else if (matrizEntidades[i][j] == "M") {
-                    rectangulo.setTexture(texMercader);
+                else if (matriz_entidades[i][j] == "M") {
+                    rectangulo.setTexture(tex_mercader);
                 }
-                else if (matrizEntidades[i][j] == "B") {
-                    rectangulo.setTexture(texBoss);
+                else if (matriz_entidades[i][j] == "B") {
+                    rectangulo.setTexture(tex_boss);
                 }
-                else if (matrizEntidades[i][j] == "C") {
-                    rectangulo.setTexture(texCofre);
+                else if (matriz_entidades[i][j] == "C") {
+                    rectangulo.setTexture(tex_cofre);
                 }
                 ventana.draw(rectangulo);
             }

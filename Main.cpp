@@ -4,5 +4,5 @@
 #include "structs.h"
 
 int main() {
-    return iniciarJuego();
+    return iniciarjuego();
 }
