@@ -12,9 +12,21 @@
 #include "funciones.h"
 #include "structs.h"
 
-enum estado_pantalla { menu_principal, jugando, cargar, controles, reglas, creditos, en_tienda, en_batalla, en_inventario, confirmar_guardado, aviso_guardado };
+enum estado_pantalla { menu_principal, jugando, cargar, controles, reglas, creditos, en_tienda, en_batalla, en_inventario, confirmar_guardado, aviso_guardado, pedir_nombre };
 
-enum class fase_batalla { cinematica_boss, espera_input, anim_pj_ataca, anim_enemigo_ataca, anim_pocion, ganada, victoria_final, perdida, huida };
+enum class fase_batalla {
+    cinematica_boss,
+    espera_input,
+    anim_pj_ataca,
+    anim_enemigo_ataca,
+    anim_pocion,
+    cinematica_curacion_boss,
+    cinematica_ataque_especial_boss,
+    ganada,
+    victoria_final,
+    perdida,
+    huida
+};
 
 int iniciarjuego() {
     sf::RenderWindow window(sf::VideoMode({ 800, 800 }), "Dungeon Survival");
@@ -166,10 +178,16 @@ int iniciarjuego() {
     int enemigo_vida_max = 0;
     bool es_boss_actual = false;
     bool defendiendo = false;
+    bool boss_se_curo = false;
     fase_batalla fase_actual = fase_batalla::espera_input;
     sf::Clock reloj_anim_batalla;
     const float duracion_anim = 0.55f;
+    const float duracion_curacion = 4.5f;
+    const float duracion_ataque_especial = 4.0f;
     std::string mensaje_batalla = "";
+
+    // --- VARIABLE PARA PEDIR EL NOMBRE DEL PERSONAJE ---
+    std::string nombre_input = "";
 
     personaje paolo;
     protagonista(paolo);
@@ -302,6 +320,22 @@ int iniciarjuego() {
             if (event->is<sf::Event::Closed>()) {
                 window.close();
             }
+            else if (const auto* text_event = event->getIf<sf::Event::TextEntered>()) {
+                // Capturamos los caracteres tipeados cuando estamos pidiendo el nombre del personaje
+                if (estado_actual == pedir_nombre) {
+                    std::uint32_t code = text_event->unicode;
+                    if (code == 8) { // Backspace
+                        if (!nombre_input.empty()) {
+                            nombre_input.pop_back();
+                        }
+                    }
+                    else if (code >= 32 && code < 127) { // ASCII imprimible
+                        if (nombre_input.length() < 15) {
+                            nombre_input += static_cast<char>(code);
+                        }
+                    }
+                }
+            }
             else if (const auto* key_pressed = event->getIf<sf::Event::KeyPressed>()) {
 
                 if (estado_actual == menu_principal) {
@@ -313,7 +347,11 @@ int iniciarjuego() {
                     }
                     else if (key_pressed->code == sf::Keyboard::Key::Enter) {
                         switch (item_seleccionado) {
-                        case 0: estado_actual = jugando; break;
+                        case 0:
+                            // Nueva partida: primero pedimos el nombre del personaje
+                            nombre_input = "";
+                            estado_actual = pedir_nombre;
+                            break;
                         case 1:
                             partidas_guardadas = obtenerPartidas();
                             std::sort(partidas_guardadas.begin(), partidas_guardadas.end(), [](const registro_partida& a, const registro_partida& b) {
@@ -346,6 +384,26 @@ int iniciarjuego() {
                         case 4: estado_actual = creditos; break;
                         case 5: window.close(); break;
                         }
+                    }
+                }
+                else if (estado_actual == pedir_nombre) {
+                    if (key_pressed->code == sf::Keyboard::Key::Enter) {
+                        // Si el campo esta vacio, dejamos el nombre por defecto
+                        std::string nombre_final = nombre_input.empty() ? std::string("Paolo") : nombre_input;
+                        // Quitamos espacios al inicio/final
+                        while (!nombre_final.empty() && nombre_final.front() == ' ') nombre_final.erase(0, 1);
+                        while (!nombre_final.empty() && nombre_final.back() == ' ') nombre_final.pop_back();
+                        if (nombre_final.empty()) nombre_final = "Paolo";
+
+                        // Reseteamos el protagonista y el mapa para arrancar una partida limpia
+                        protagonista(paolo);
+                        paolo.name = nombre_final;
+                        cargarnivel(paolo.nivel_actual, matriz_fondo, matriz_entidades);
+                        estado_actual = jugando;
+                    }
+                    else if (key_pressed->code == sf::Keyboard::Key::Escape) {
+                        // Cancelar: vuelve al menu
+                        estado_actual = menu_principal;
                     }
                 }
                 else if (estado_actual == cargar && opciones_carga.empty()) {
@@ -598,6 +656,7 @@ int iniciarjuego() {
                                 inicializarenemigo(enemigo_actual, es_boss_actual);
                                 enemigo_vida_max = enemigo_actual.vida;
                                 defendiendo = false;
+                                boss_se_curo = false;
                                 if (es_boss_actual) {
                                     fase_actual = fase_batalla::cinematica_boss;
                                     mensaje_batalla = "";
@@ -839,39 +898,60 @@ int iniciarjuego() {
             float t_anim = reloj_anim_batalla.getElapsedTime().asSeconds();
 
             if (fase_actual == fase_batalla::anim_pj_ataca && t_anim >= duracion_anim) {
-                // El jugador hace ~150% del dano base (ventaja clara contra enemigos)
-                int dano_base = (paolo.ataque * 3) / 2 + (std::rand() % 6);
-                int dano_real = dano_base - enemigo_actual.defensa;
-                if (dano_real < 2) dano_real = 2;
-                enemigo_actual.vida -= dano_real;
-
-                if (enemigo_actual.vida <= 0) {
-                    enemigo_actual.vida = 0;
-                    // Recompensa segun tipo de enemigo
-                    int recompensa = es_boss_actual ? (60 + std::rand() % 41) : (10 + std::rand() % 16);
-                    paolo.oro += recompensa;
-                    // Borramos al enemigo del mapa
-                    if (enemigo_pos_x >= 0 && enemigo_pos_y >= 0 &&
-                        enemigo_pos_y < max_filas && enemigo_pos_x < max_columnas) {
-                        matriz_entidades[enemigo_pos_y][enemigo_pos_x] = "";
-                    }
-                    if (es_boss_actual) {
-                        mensaje_batalla = "Ganaste " + std::to_string(recompensa) + " de oro!";
-                        fase_actual = fase_batalla::victoria_final;
-                        reloj_anim_batalla.restart();
-                    }
-                    else {
-                        mensaje_batalla = "Victoria! Causaste " + std::to_string(dano_real) +
-                            " de dano final. Ganaste " + std::to_string(recompensa) + " de oro. (ENTER)";
-                        fase_actual = fase_batalla::ganada;
-                    }
-                    // Guardamos automaticamente la partida tras la victoria
-                    guardarPartida(paolo, matriz_entidades);
+                // Si peleamos contra el boss, hay 33% de chance de fallar el ataque por miedo
+                bool fallo_por_miedo = false;
+                if (es_boss_actual && (std::rand() % 100) < 33) {
+                    fallo_por_miedo = true;
                 }
-                else {
-                    mensaje_batalla = "Causaste " + std::to_string(dano_real) + " de dano al " + enemigo_actual.nombre + ".";
+
+                if (fallo_por_miedo) {
+                    mensaje_batalla = "Te paralizas de miedo y fallas el ataque!";
                     reloj_anim_batalla.restart();
                     fase_actual = fase_batalla::anim_enemigo_ataca;
+                }
+                else {
+                    // El jugador hace ~150% del dano base (ventaja clara contra enemigos)
+                    int dano_base = (paolo.ataque * 3) / 2 + (std::rand() % 6);
+                    int dano_real = dano_base - enemigo_actual.defensa;
+                    if (dano_real < 2) dano_real = 2;
+                    enemigo_actual.vida -= dano_real;
+
+                    if (enemigo_actual.vida <= 0) {
+                        enemigo_actual.vida = 0;
+                        // Recompensa segun tipo de enemigo
+                        int recompensa = es_boss_actual ? (60 + std::rand() % 41) : (10 + std::rand() % 16);
+                        paolo.oro += recompensa;
+                        // Borramos al enemigo del mapa
+                        if (enemigo_pos_x >= 0 && enemigo_pos_y >= 0 &&
+                            enemigo_pos_y < max_filas && enemigo_pos_x < max_columnas) {
+                            matriz_entidades[enemigo_pos_y][enemigo_pos_x] = "";
+                        }
+                        if (es_boss_actual) {
+                            mensaje_batalla = "Ganaste " + std::to_string(recompensa) + " de oro!";
+                            fase_actual = fase_batalla::victoria_final;
+                            reloj_anim_batalla.restart();
+                        }
+                        else {
+                            mensaje_batalla = "Victoria! Causaste " + std::to_string(dano_real) +
+                                " de dano final. Ganaste " + std::to_string(recompensa) + " de oro. (ENTER)";
+                            fase_actual = fase_batalla::ganada;
+                        }
+                        // Guardamos automaticamente la partida tras la victoria
+                        guardarPartida(paolo, matriz_entidades);
+                    }
+                    // Si es el boss, esta debilitado y nunca se curo, gatillamos la cinematica de regeneracion
+                    else if (es_boss_actual && !boss_se_curo &&
+                             enemigo_actual.vida <= (enemigo_vida_max * 30) / 100) {
+                        boss_se_curo = true;
+                        mensaje_batalla = "El Guardian se enfurece y libera su poder!";
+                        reloj_anim_batalla.restart();
+                        fase_actual = fase_batalla::cinematica_curacion_boss;
+                    }
+                    else {
+                        mensaje_batalla = "Causaste " + std::to_string(dano_real) + " de dano al " + enemigo_actual.nombre + ".";
+                        reloj_anim_batalla.restart();
+                        fase_actual = fase_batalla::anim_enemigo_ataca;
+                    }
                 }
             }
             else if (fase_actual == fase_batalla::anim_enemigo_ataca && t_anim >= duracion_anim) {
@@ -901,6 +981,37 @@ int iniciarjuego() {
                 // Tras curarse, ataca el enemigo
                 reloj_anim_batalla.restart();
                 fase_actual = fase_batalla::anim_enemigo_ataca;
+            }
+            else if (fase_actual == fase_batalla::cinematica_curacion_boss && t_anim >= duracion_curacion) {
+                // El boss recupera el 50% de su HP maxima
+                enemigo_actual.vida += enemigo_vida_max / 2;
+                if (enemigo_actual.vida > enemigo_vida_max) enemigo_actual.vida = enemigo_vida_max;
+
+                mensaje_batalla = "El Guardian se prepara para un ATAQUE DEVASTADOR!";
+                reloj_anim_batalla.restart();
+                fase_actual = fase_batalla::cinematica_ataque_especial_boss;
+            }
+            else if (fase_actual == fase_batalla::cinematica_ataque_especial_boss && t_anim >= duracion_ataque_especial) {
+                // Aplica un ataque especial: doble dano contra el jugador
+                int dano_base = (enemigo_actual.ataque * 80) / 100 + (std::rand() % 4);
+                int dano_real = (dano_base * 2) - (paolo.defensa / 10);
+                if (defendiendo) {
+                    dano_real = dano_real / 2;
+                    defendiendo = false;
+                }
+                if (dano_real < 1) dano_real = 1;
+                paolo.vida -= dano_real;
+
+                if (paolo.vida <= 0) {
+                    paolo.vida = 0;
+                    mensaje_batalla = "El ataque especial te derroto... (ENTER)";
+                    fase_actual = fase_batalla::perdida;
+                }
+                else {
+                    mensaje_batalla = "El ataque especial te causa " + std::to_string(dano_real) +
+                        " de dano! Tu turno. (1/2/3)";
+                    fase_actual = fase_batalla::espera_input;
+                }
             }
         }
 
@@ -1018,6 +1129,8 @@ int iniciarjuego() {
             if (t_norm > 1.0f) t_norm = 1.0f;
             float offset_pj = 0.f;
             float offset_en = 0.f;
+            float offset_y_en = 0.f;
+            float escala_extra_en = 1.f;
             if (fase_actual == fase_batalla::anim_pj_ataca) {
                 offset_pj = std::sin(t_norm * 3.14159265f) * 130.f;
             }
@@ -1026,6 +1139,19 @@ int iniciarjuego() {
             }
             else if (fase_actual == fase_batalla::anim_pocion) {
                 offset_pj = std::sin(t_norm * 3.14159265f * 4.f) * 12.f;
+            }
+            else if (fase_actual == fase_batalla::cinematica_curacion_boss) {
+                // El boss flota suavemente hacia arriba y vibra mientras se cura
+                float t_cur = reloj_anim_batalla.getElapsedTime().asSeconds();
+                offset_y_en = -std::sin(std::min(1.f, t_cur / 1.0f) * 1.5707963f) * 30.f;
+                offset_en = std::sin(t_cur * 30.f) * 4.f;
+            }
+            else if (fase_actual == fase_batalla::cinematica_ataque_especial_boss) {
+                // El boss crece y tiembla violentamente preparando su ataque
+                float t_atk = reloj_anim_batalla.getElapsedTime().asSeconds();
+                escala_extra_en = 1.f + std::min(1.f, t_atk / 2.0f) * 0.4f;
+                offset_en = std::sin(t_atk * 45.f) * 8.f;
+                offset_y_en = std::cos(t_atk * 40.f) * 6.f;
             }
 
             // Sprite del protagonista (izquierda)
@@ -1045,11 +1171,11 @@ int iniciarjuego() {
             {
                 auto tam_en = (es_boss_actual ? tex_boss : tex_enemigo).getSize();
                 if (tam_en.x > 0) {
-                    float escala = 220.f / static_cast<float>(tam_en.x);
+                    float escala = (220.f / static_cast<float>(tam_en.x)) * escala_extra_en;
                     sprite_enemigo_batalla.setScale({ escala, escala });
                 }
             }
-            sprite_enemigo_batalla.setPosition({ 470.f + offset_en, 340.f });
+            sprite_enemigo_batalla.setPosition({ 470.f + offset_en, 340.f + offset_y_en });
             window.draw(sprite_enemigo_batalla);
 
             // --- BARRA DE VIDA DEL PROTAGONISTA ---
@@ -1098,14 +1224,179 @@ int iniciarjuego() {
             window.draw(barra_vida_en);
 
             sf::Text nombre_en(alagard);
-            nombre_en.setString(enemigo_actual.nombre + "   HP: " +
-                std::to_string(enemigo_actual.vida) + " / " + std::to_string(enemigo_vida_max));
+            if (es_boss_actual) {
+                // Para el boss mostramos la vida en porcentaje (mas dramatico)
+                int porcentaje_boss = static_cast<int>(porc_en * 100.f + 0.5f);
+                if (porcentaje_boss < 0) porcentaje_boss = 0;
+                if (porcentaje_boss > 100) porcentaje_boss = 100;
+                nombre_en.setString(enemigo_actual.nombre + "   HP: " + std::to_string(porcentaje_boss) + "%");
+            }
+            else {
+                nombre_en.setString(enemigo_actual.nombre + "   HP: " +
+                    std::to_string(enemigo_actual.vida) + " / " + std::to_string(enemigo_vida_max));
+            }
             nombre_en.setCharacterSize(20);
             nombre_en.setFillColor(sf::Color::White);
             nombre_en.setOutlineColor(sf::Color::Black);
             nombre_en.setOutlineThickness(2.f);
             nombre_en.setPosition({ 520.f, 75.f });
             window.draw(nombre_en);
+
+            // === CINEMATICA DE CURACION DEL BOSS (overlay sobre la batalla) ===
+            if (fase_actual == fase_batalla::cinematica_curacion_boss) {
+                const float PI = 3.14159265f;
+                float tc = reloj_anim_batalla.getElapsedTime().asSeconds();
+
+                // Velo verde pulsante sobre toda la pantalla
+                float pulso_v = (std::sin(tc * 4.f) + 1.f) * 0.5f;
+                sf::RectangleShape velo_verde({ 800.f, 800.f });
+                velo_verde.setFillColor(sf::Color(30, 200, 60, static_cast<std::uint8_t>(60 + pulso_v * 50)));
+                window.draw(velo_verde);
+
+                // Anillos concentricos verdes que crecen desde el boss
+                for (int k = 0; k < 3; k++) {
+                    float fase_k = std::fmod(tc + k * 0.6f, 1.8f) / 1.8f; // 0..1
+                    float radio = 60.f + fase_k * 220.f;
+                    float alpha_ring = (1.f - fase_k) * 220.f;
+                    sf::CircleShape anillo(radio);
+                    anillo.setOrigin({ radio, radio });
+                    anillo.setPosition({ 470.f + 110.f + offset_en, 340.f + 110.f + offset_y_en });
+                    anillo.setFillColor(sf::Color::Transparent);
+                    anillo.setOutlineColor(sf::Color(80, 255, 120, static_cast<std::uint8_t>(alpha_ring)));
+                    anillo.setOutlineThickness(4.f);
+                    window.draw(anillo);
+                }
+
+                // Cruces flotantes "+" subiendo alrededor del boss
+                for (int k = 0; k < 6; k++) {
+                    float fase_k = std::fmod(tc * 0.9f + k * 0.35f, 1.8f) / 1.8f;
+                    float pos_x = 470.f + 60.f + std::sin(k * 1.2f) * 90.f;
+                    float pos_y = 480.f - fase_k * 220.f;
+                    float alpha_c = (1.f - fase_k) * 255.f;
+                    sf::Text cruz(alagard);
+                    cruz.setString("+");
+                    cruz.setCharacterSize(36);
+                    cruz.setFillColor(sf::Color(100, 255, 130, static_cast<std::uint8_t>(alpha_c)));
+                    cruz.setOutlineColor(sf::Color(0, 80, 20, static_cast<std::uint8_t>(alpha_c)));
+                    cruz.setOutlineThickness(2.f);
+                    cruz.setPosition({ pos_x, pos_y });
+                    window.draw(cruz);
+                }
+
+                // Titulo dramatico centrado
+                float alpha_titulo = std::min(1.f, tc / 0.4f) * 255.f;
+                if (tc > duracion_curacion - 0.4f) {
+                    alpha_titulo = ((duracion_curacion - tc) / 0.4f) * 255.f;
+                }
+                if (alpha_titulo < 0.f) alpha_titulo = 0.f;
+                sf::Text titulo_cura(alagard);
+                titulo_cura.setString("REGENERACION");
+                titulo_cura.setCharacterSize(56);
+                titulo_cura.setFillColor(sf::Color(120, 255, 140, static_cast<std::uint8_t>(alpha_titulo)));
+                titulo_cura.setOutlineColor(sf::Color(0, 60, 20, static_cast<std::uint8_t>(alpha_titulo)));
+                titulo_cura.setOutlineThickness(4.f);
+                {
+                    auto b = titulo_cura.getLocalBounds();
+                    titulo_cura.setOrigin({ b.size.x / 2.f, 0.f });
+                }
+                titulo_cura.setPosition({ 400.f, 250.f });
+                window.draw(titulo_cura);
+
+                sf::Text sub_cura(alagard);
+                sub_cura.setString("El Guardian recupera su poder!");
+                sub_cura.setCharacterSize(22);
+                sub_cura.setFillColor(sf::Color(220, 255, 220, static_cast<std::uint8_t>(alpha_titulo)));
+                sub_cura.setOutlineColor(sf::Color::Black);
+                sub_cura.setOutlineThickness(2.f);
+                {
+                    auto b = sub_cura.getLocalBounds();
+                    sub_cura.setOrigin({ b.size.x / 2.f, 0.f });
+                }
+                sub_cura.setPosition({ 400.f, 320.f });
+                window.draw(sub_cura);
+            }
+
+            // === CINEMATICA DE ATAQUE ESPECIAL DEL BOSS (overlay sobre la batalla) ===
+            if (fase_actual == fase_batalla::cinematica_ataque_especial_boss) {
+                const float PI = 3.14159265f;
+                float ta = reloj_anim_batalla.getElapsedTime().asSeconds();
+
+                // Velo rojo cada vez mas intenso conforme se acerca el golpe
+                float intensidad = std::min(1.f, ta / duracion_ataque_especial);
+                float pulso_a = (std::sin(ta * 8.f) + 1.f) * 0.5f;
+                sf::RectangleShape velo_rojo({ 800.f, 800.f });
+                velo_rojo.setFillColor(sf::Color(180, 20, 20, static_cast<std::uint8_t>(40 + intensidad * 120 + pulso_a * 20)));
+                window.draw(velo_rojo);
+
+                // Aura ardiente alrededor del boss
+                for (int k = 0; k < 4; k++) {
+                    float fase_k = std::fmod(ta * 1.4f + k * 0.45f, 1.4f) / 1.4f;
+                    float radio = 70.f + fase_k * 200.f;
+                    float alpha_ring = (1.f - fase_k) * 240.f;
+                    sf::CircleShape anillo(radio);
+                    anillo.setOrigin({ radio, radio });
+                    anillo.setPosition({ 470.f + 110.f + offset_en, 340.f + 110.f + offset_y_en });
+                    anillo.setFillColor(sf::Color::Transparent);
+                    anillo.setOutlineColor(sf::Color(255, 80, 30, static_cast<std::uint8_t>(alpha_ring)));
+                    anillo.setOutlineThickness(5.f);
+                    window.draw(anillo);
+                }
+
+                // "Rayos" radiales desde el boss (lineas)
+                for (int k = 0; k < 10; k++) {
+                    float angulo = (k / 10.f) * 2.f * PI + ta * 0.8f;
+                    float largo = 80.f + std::sin(ta * 3.f + k) * 30.f + intensidad * 60.f;
+                    sf::RectangleShape rayo({ largo, 3.f });
+                    rayo.setOrigin({ 0.f, 1.5f });
+                    rayo.setPosition({ 470.f + 110.f + offset_en, 340.f + 110.f + offset_y_en });
+                    rayo.setRotation(sf::radians(angulo));
+                    rayo.setFillColor(sf::Color(255, 200, 50, static_cast<std::uint8_t>(180 + pulso_a * 75)));
+                    window.draw(rayo);
+                }
+
+                // Flash blanco justo antes del impacto
+                if (ta > duracion_ataque_especial - 0.5f) {
+                    float prog_flash = (ta - (duracion_ataque_especial - 0.5f)) / 0.5f;
+                    float alpha_flash = std::sin(prog_flash * PI) * 230.f;
+                    sf::RectangleShape flash({ 800.f, 800.f });
+                    flash.setFillColor(sf::Color(255, 255, 255, static_cast<std::uint8_t>(alpha_flash)));
+                    window.draw(flash);
+                }
+
+                // Titulo dramatico
+                float alpha_titulo_a = std::min(1.f, ta / 0.3f) * 255.f;
+                if (ta > duracion_ataque_especial - 0.3f) {
+                    alpha_titulo_a = ((duracion_ataque_especial - ta) / 0.3f) * 255.f;
+                }
+                if (alpha_titulo_a < 0.f) alpha_titulo_a = 0.f;
+
+                sf::Text titulo_atk(alagard);
+                titulo_atk.setString("ATAQUE ESPECIAL");
+                titulo_atk.setCharacterSize(56);
+                titulo_atk.setFillColor(sf::Color(255, 80, 50, static_cast<std::uint8_t>(alpha_titulo_a)));
+                titulo_atk.setOutlineColor(sf::Color::Black);
+                titulo_atk.setOutlineThickness(4.f);
+                {
+                    auto b = titulo_atk.getLocalBounds();
+                    titulo_atk.setOrigin({ b.size.x / 2.f, 0.f });
+                }
+                // Pequeno temblor en el titulo
+                titulo_atk.setPosition({ 400.f + std::sin(ta * 35.f) * 3.f, 240.f });
+                window.draw(titulo_atk);
+
+                sf::Text sub_atk(alagard);
+                sub_atk.setString("Preparate para el golpe devastador!");
+                sub_atk.setCharacterSize(22);
+                sub_atk.setFillColor(sf::Color(255, 220, 220, static_cast<std::uint8_t>(alpha_titulo_a)));
+                sub_atk.setOutlineColor(sf::Color::Black);
+                sub_atk.setOutlineThickness(2.f);
+                {
+                    auto b = sub_atk.getLocalBounds();
+                    sub_atk.setOrigin({ b.size.x / 2.f, 0.f });
+                }
+                sub_atk.setPosition({ 400.f, 310.f });
+                window.draw(sub_atk);
+            }
 
             // --- PANEL INFERIOR DE MENSAJES Y OPCIONES ---
             sf::RectangleShape panel_batalla({ 760.f, 180.f });
@@ -1295,6 +1586,101 @@ int iniciarjuego() {
             window.draw(texto_titulo);
             window.draw(panel_menu);
             dibujarmenu(window, opciones_menu);
+        }
+        else if (estado_actual == pedir_nombre) {
+            window.draw(texto_titulo);
+
+            // Caja central con el formulario de nombre
+            sf::RectangleShape caja_nombre({ 560.0f, 320.0f });
+            caja_nombre.setOrigin({ 280.0f, 160.0f });
+            caja_nombre.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f });
+            caja_nombre.setFillColor(sf::Color(15, 15, 20, 235));
+            caja_nombre.setOutlineColor(sf::Color(212, 175, 55));
+            caja_nombre.setOutlineThickness(3.0f);
+            window.draw(caja_nombre);
+
+            sf::Text titulo_nombre(alagard);
+            titulo_nombre.setString("Nombre del personaje");
+            titulo_nombre.setCharacterSize(30);
+            titulo_nombre.setFillColor(sf::Color(255, 215, 0));
+            titulo_nombre.setOutlineColor(sf::Color::Black);
+            titulo_nombre.setOutlineThickness(2.0f);
+            {
+                auto b = titulo_nombre.getLocalBounds();
+                titulo_nombre.setOrigin({ b.size.x / 2.0f, 0.0f });
+            }
+            titulo_nombre.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f - 130.0f });
+            window.draw(titulo_nombre);
+
+            // Campo de texto: muestra el input + cursor parpadeante
+            bool cursor_visible = (static_cast<int>(reloj_anim_batalla.getElapsedTime().asMilliseconds() / 500) % 2) == 0;
+            sf::RectangleShape campo_texto({ 460.0f, 60.0f });
+            campo_texto.setOrigin({ 230.0f, 30.0f });
+            campo_texto.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f - 50.0f });
+            campo_texto.setFillColor(sf::Color(30, 30, 35));
+            campo_texto.setOutlineColor(sf::Color(180, 180, 180));
+            campo_texto.setOutlineThickness(2.0f);
+            window.draw(campo_texto);
+
+            std::string texto_mostrar = nombre_input;
+            if (texto_mostrar.empty()) {
+                // Placeholder en gris claro
+                sf::Text placeholder(alagard);
+                placeholder.setString("Paolo");
+                placeholder.setCharacterSize(28);
+                placeholder.setFillColor(sf::Color(120, 120, 120));
+                {
+                    auto b = placeholder.getLocalBounds();
+                    placeholder.setOrigin({ b.size.x / 2.0f, b.size.y / 2.0f });
+                }
+                placeholder.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f - 55.0f });
+                window.draw(placeholder);
+            }
+            else {
+                sf::Text texto_actual(alagard);
+                texto_actual.setString(texto_mostrar + (cursor_visible ? "_" : " "));
+                texto_actual.setCharacterSize(28);
+                texto_actual.setFillColor(sf::Color::White);
+                {
+                    auto b = texto_actual.getLocalBounds();
+                    texto_actual.setOrigin({ b.size.x / 2.0f, b.size.y / 2.0f });
+                }
+                texto_actual.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f - 55.0f });
+                window.draw(texto_actual);
+            }
+
+            sf::Text hint1(alagard);
+            hint1.setString("Escribe tu nombre y presiona ENTER");
+            hint1.setCharacterSize(18);
+            hint1.setFillColor(sf::Color::White);
+            {
+                auto b = hint1.getLocalBounds();
+                hint1.setOrigin({ b.size.x / 2.0f, 0.0f });
+            }
+            hint1.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f + 10.0f });
+            window.draw(hint1);
+
+            sf::Text hint2(alagard);
+            hint2.setString("Deja el campo vacio y presiona ENTER para usar \"Paolo\"");
+            hint2.setCharacterSize(16);
+            hint2.setFillColor(sf::Color(200, 200, 200));
+            {
+                auto b = hint2.getLocalBounds();
+                hint2.setOrigin({ b.size.x / 2.0f, 0.0f });
+            }
+            hint2.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f + 50.0f });
+            window.draw(hint2);
+
+            sf::Text hint3(alagard);
+            hint3.setString("(ESC para volver al menu)");
+            hint3.setCharacterSize(14);
+            hint3.setFillColor(sf::Color(160, 160, 160));
+            {
+                auto b = hint3.getLocalBounds();
+                hint3.setOrigin({ b.size.x / 2.0f, 0.0f });
+            }
+            hint3.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f + 100.0f });
+            window.draw(hint3);
         }
         else {
             if (estado_actual == jugando || estado_actual == en_tienda || estado_actual == en_inventario) {
