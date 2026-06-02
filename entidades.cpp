@@ -49,7 +49,7 @@ void inicializarenemigo(enemigo& en, bool es_boss) {
 	if (es_boss) {
 		en.nombre = "Guardian de la Mazmorra";
 		en.vida = 200;
-		en.ataque = 26;
+		en.ataque = 11;
 		en.defensa = 10;
 	}
 	else {

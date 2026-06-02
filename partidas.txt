@@ -1,24 +1,21 @@
 #PARTIDA
 
-1780401093
-98
-99
-Daga Rota
-Armadura Pesada
-12
-50
-4
-6
-7
-9
-Armadura Pesada
-Basura Premium
-Daga Rota
-Basura Premium
-Daga Rota
-Basura Premium
-Daga Rota
+1780402565
+197
+58
 Palo
+Armadura Pesada
+8
+50
+5
+4
+5
+6
+Armadura Ligera
+Armadura Ligera
+Armadura Pesada
+Daga Rota
+Pocion Grande
 Pocion Grande
 #ENTIDADES
 
@@ -75,29 +72,29 @@ Pocion Grande
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 P
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

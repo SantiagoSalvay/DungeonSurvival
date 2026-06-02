@@ -96,7 +96,7 @@ int iniciarjuego() {
         " COMBATE (por turnos):\n"
         "   1 = Atacar | 2 = Usar pocion\n"
         "   3 = Defender | 4 = Huir\n\n"
-        "        (Presiona ENTER para volver al menu)");
+        "        (Presiona ESC para volver)");
     texto_controles.setCharacterSize(21);
     texto_controles.setPosition({ 60.0f, 60.0f });
     texto_controles.setFillColor(sf::Color::White);
@@ -288,6 +288,8 @@ int iniciarjuego() {
     int item_confirmacion = 0;
     bool salir_despues_confirmacion = false;
     bool guardado_reciente = false;
+    bool controles_desde_pausa = false;
+    bool aviso_boss = false;
     estado_pantalla estado_pendiente = jugando;
 
     std::vector<registro_partida> partidas_guardadas;
@@ -362,7 +364,14 @@ int iniciarjuego() {
                     }
                 }
                 else if (estado_actual == reglas || estado_actual == controles || estado_actual == creditos) {
-                    if (key_pressed->code == sf::Keyboard::Key::Enter || key_pressed->code == sf::Keyboard::Key::Escape) {
+                    if (estado_actual == controles && controles_desde_pausa) {
+                        // Si vinimos desde la pausa, ESC vuelve al juego (no al menu)
+                        if (key_pressed->code == sf::Keyboard::Key::Escape || key_pressed->code == sf::Keyboard::Key::Enter) {
+                            controles_desde_pausa = false;
+                            estado_actual = jugando;
+                        }
+                    }
+                    else if (key_pressed->code == sf::Keyboard::Key::Enter || key_pressed->code == sf::Keyboard::Key::Escape) {
                         estado_actual = menu_principal;
                     }
                 }
@@ -392,6 +401,15 @@ int iniciarjuego() {
                             if (paolo.posicion_y >= 0 && paolo.posicion_y < max_filas &&
                                 paolo.posicion_x >= 0 && paolo.posicion_x < max_columnas) {
                                 matriz_entidades[paolo.posicion_y][paolo.posicion_x] = "P";
+                            }
+                            // Si el nivel cargado tiene Boss, advertimos al jugador
+                            aviso_boss = false;
+                            for (int i = 0; i < max_filas && !aviso_boss; i++) {
+                                for (int j = 0; j < max_columnas && !aviso_boss; j++) {
+                                    if (matriz_entidades[i][j] == "B") {
+                                        aviso_boss = true;
+                                    }
+                                }
                             }
                             estado_actual = jugando;
                         }
@@ -439,9 +457,10 @@ int iniciarjuego() {
                                 estado_pendiente = jugando;
                                 estado_actual = aviso_guardado;
                                 break;
-                            case 2: // Ver Controles
+                            case 2: // Ver Controles (desde la pausa)
                                 estado_actual = controles;
                                 en_pausa = false;
+                                controles_desde_pausa = true;
                                 break;
                             case 3: // Volver al Menu
                                 if (guardado_reciente) {
@@ -487,21 +506,25 @@ int iniciarjuego() {
                             moverpj(paolo, 'W', matriz_fondo, matriz_entidades);
                             aviso_puerta = false;
                             aviso_cofre = false;
+                            aviso_boss = false;
                         }
                         else if (key_pressed->code == sf::Keyboard::Key::S) {
                             moverpj(paolo, 'S', matriz_fondo, matriz_entidades);
                             aviso_puerta = false;
                             aviso_cofre = false;
+                            aviso_boss = false;
                         }
                         else if (key_pressed->code == sf::Keyboard::Key::A) {
                             moverpj(paolo, 'A', matriz_fondo, matriz_entidades);
                             aviso_puerta = false;
                             aviso_cofre = false;
+                            aviso_boss = false;
                         }
                         else if (key_pressed->code == sf::Keyboard::Key::D) {
                             moverpj(paolo, 'D', matriz_fondo, matriz_entidades);
                             aviso_puerta = false;
                             aviso_cofre = false;
+                            aviso_boss = false;
                         }
                         else if (key_pressed->code == sf::Keyboard::Key::E) {
                             // Limpiamos el resultado para no arrastrar datos viejos
@@ -517,6 +540,15 @@ int iniciarjuego() {
                                 paolo.posicion_y = 1;
                                 aviso_puerta = false;
                                 aviso_cofre = false;
+                                // Si el nuevo nivel tiene un Boss, advertimos al jugador
+                                aviso_boss = false;
+                                for (int i = 0; i < max_filas && !aviso_boss; i++) {
+                                    for (int j = 0; j < max_columnas && !aviso_boss; j++) {
+                                        if (matriz_entidades[i][j] == "B") {
+                                            aviso_boss = true;
+                                        }
+                                    }
+                                }
                             }
                             else if (resultado == 'L') {
                                 aviso_puerta = true;
@@ -583,6 +615,29 @@ int iniciarjuego() {
                     }
                 }
                 else if (estado_actual == en_inventario) {
+                    // Helpers: calculo de grupos del inventario ordenado
+                    auto contar_grupos = [&]() -> int {
+                        int c = 0;
+                        for (int i = 0; i < paolo.cant_items; ) {
+                            int j = i;
+                            while (j < paolo.cant_items && paolo.inventario[j] == paolo.inventario[i]) j++;
+                            c++;
+                            i = j;
+                        }
+                        return c;
+                    };
+                    auto indice_plano_grupo = [&](int idx_grupo) -> int {
+                        int c = 0;
+                        for (int i = 0; i < paolo.cant_items; ) {
+                            int j = i;
+                            while (j < paolo.cant_items && paolo.inventario[j] == paolo.inventario[i]) j++;
+                            if (c == idx_grupo) return i;
+                            c++;
+                            i = j;
+                        }
+                        return -1;
+                    };
+
                     if (key_pressed->code == sf::Keyboard::Key::Escape || key_pressed->code == sf::Keyboard::Key::Num5) {
                         estado_actual = jugando;
                     }
@@ -590,11 +645,14 @@ int iniciarjuego() {
                         if (cursor_inventario > 0) cursor_inventario--;
                     }
                     else if (key_pressed->code == sf::Keyboard::Key::S || key_pressed->code == sf::Keyboard::Key::Down) {
-                        if (cursor_inventario < paolo.cant_items - 1) cursor_inventario++;
+                        int n_grupos = contar_grupos();
+                        if (cursor_inventario < n_grupos - 1) cursor_inventario++;
                     }
                     else if (key_pressed->code == sf::Keyboard::Key::Enter) {
                         if (paolo.cant_items > 0) {
-                            string item_sel = paolo.inventario[cursor_inventario];
+                            int idx_plano = indice_plano_grupo(cursor_inventario);
+                            if (idx_plano < 0) idx_plano = 0;
+                            string item_sel = paolo.inventario[idx_plano];
 
                             if (item_sel == "Palo" || item_sel == "Daga Rota" || item_sel == "Espada de Hierro") {
                                 paolo.arma_equipada = item_sel;
@@ -616,12 +674,14 @@ int iniciarjuego() {
                                 int vida_maxima = 100 + paolo.defensa;
                                 if (paolo.vida > vida_maxima) paolo.vida = vida_maxima;
 
-                                for (int i = cursor_inventario; i < paolo.cant_items - 1; i++) {
+                                for (int i = idx_plano; i < paolo.cant_items - 1; i++) {
                                     paolo.inventario[i] = paolo.inventario[i + 1];
                                 }
                                 paolo.cant_items--;
 
-                                if (cursor_inventario >= paolo.cant_items && cursor_inventario > 0) {
+                                // Si el grupo quedo vacio (era el ultimo item del grupo), ajustamos el cursor
+                                int n_grupos_nuevos = contar_grupos();
+                                if (cursor_inventario >= n_grupos_nuevos && cursor_inventario > 0) {
                                     cursor_inventario--;
                                 }
                             }
@@ -815,9 +875,9 @@ int iniciarjuego() {
                 }
             }
             else if (fase_actual == fase_batalla::anim_enemigo_ataca && t_anim >= duracion_anim) {
-                // El enemigo comun pega al 70% de su ataque base; el boss al 95% (mas peligroso pero el jugador sigue arriba)
-                int multiplicador = es_boss_actual ? 95 : 70;
-                int dano_base = (enemigo_actual.ataque * multiplicador) / 100 + (std::rand() % (es_boss_actual ? 5 : 3));
+                // El enemigo comun pega al 70% de su ataque base; el boss al 80% (mas peligroso pero el jugador tiene chance real)
+                int multiplicador = es_boss_actual ? 80 : 70;
+                int dano_base = (enemigo_actual.ataque * multiplicador) / 100 + (std::rand() % (es_boss_actual ? 4 : 3));
                 int dano_real = dano_base - (paolo.defensa / 10);
                 if (defendiendo) {
                     dano_real = dano_real / 2;
@@ -1275,6 +1335,68 @@ int iniciarjuego() {
                     window.draw(texto_aviso);
                 }
 
+                if (aviso_boss) {
+                    // Advertencia central: hay un boss en este nivel, juntar pociones
+                    sf::RectangleShape fondo_boss({ 620.0f, 240.0f });
+                    fondo_boss.setOrigin({ 310.0f, 120.0f });
+                    fondo_boss.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f });
+                    fondo_boss.setFillColor(sf::Color(20, 5, 5, 235));
+                    fondo_boss.setOutlineColor(sf::Color(220, 60, 60));
+                    fondo_boss.setOutlineThickness(3.0f);
+                    window.draw(fondo_boss);
+
+                    sf::Text titulo_boss(alagard);
+                    titulo_boss.setString("!!! ADVERTENCIA !!!");
+                    titulo_boss.setCharacterSize(32);
+                    titulo_boss.setFillColor(sf::Color(220, 60, 60));
+                    titulo_boss.setOutlineColor(sf::Color::Black);
+                    titulo_boss.setOutlineThickness(2.0f);
+                    {
+                        auto b = titulo_boss.getLocalBounds();
+                        titulo_boss.setOrigin({ b.size.x / 2.0f, 0.0f });
+                    }
+                    titulo_boss.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f - 100.0f });
+                    window.draw(titulo_boss);
+
+                    sf::Text msg_boss(alagard);
+                    msg_boss.setString("El Guardian de la Mazmorra te espera!");
+                    msg_boss.setCharacterSize(22);
+                    msg_boss.setFillColor(sf::Color::White);
+                    msg_boss.setOutlineColor(sf::Color::Black);
+                    msg_boss.setOutlineThickness(2.0f);
+                    {
+                        auto b = msg_boss.getLocalBounds();
+                        msg_boss.setOrigin({ b.size.x / 2.0f, 0.0f });
+                    }
+                    msg_boss.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f - 50.0f });
+                    window.draw(msg_boss);
+
+                    sf::Text consejo_boss(alagard);
+                    consejo_boss.setString("Asegurate de guardar pociones suficientes\npara sobrevivir la batalla final.");
+                    consejo_boss.setCharacterSize(20);
+                    consejo_boss.setFillColor(sf::Color(255, 215, 0));
+                    consejo_boss.setOutlineColor(sf::Color::Black);
+                    consejo_boss.setOutlineThickness(2.0f);
+                    consejo_boss.setLineSpacing(1.2f);
+                    {
+                        auto b = consejo_boss.getLocalBounds();
+                        consejo_boss.setOrigin({ b.size.x / 2.0f, 0.0f });
+                    }
+                    consejo_boss.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f - 5.0f });
+                    window.draw(consejo_boss);
+
+                    sf::Text hint_boss(alagard);
+                    hint_boss.setString("(Movete con WASD para continuar)");
+                    hint_boss.setCharacterSize(16);
+                    hint_boss.setFillColor(sf::Color(200, 200, 200));
+                    {
+                        auto b = hint_boss.getLocalBounds();
+                        hint_boss.setOrigin({ b.size.x / 2.0f, 0.0f });
+                    }
+                    hint_boss.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f + 90.0f });
+                    window.draw(hint_boss);
+                }
+
                 if (aviso_cofre) {
                     // Cartel central con las recompensas aleatorias del cofre
                     sf::RectangleShape fondo_cofre({ 460.0f, 260.0f });
@@ -1404,23 +1526,52 @@ int iniciarjuego() {
                 stats_texto.setFillColor(sf::Color::Cyan);
                 window.draw(stats_texto);
 
+                // Agrupamos items repetidos (el inventario esta ordenado, asi que items iguales son adyacentes)
+                std::vector<std::pair<std::string, int>> grupos_inv;
                 for (int i = 0; i < paolo.cant_items; i++) {
-                    if (i < 10) {
-                        sf::Text item_texto(alagard);
-                        item_texto.setString(paolo.inventario[i]);
-                        item_texto.setCharacterSize(22);
-                        item_texto.setPosition({ 450.0f, 150.0f + (i * 35.0f) });
-
-                        if (i == cursor_inventario) {
-                            item_texto.setFillColor(sf::Color::Red);
-                            item_texto.setString("> " + paolo.inventario[i] + " <");
-                        }
-                        else {
-                            item_texto.setFillColor(sf::Color::White);
-                        }
-                        window.draw(item_texto);
+                    if (!grupos_inv.empty() && grupos_inv.back().first == paolo.inventario[i]) {
+                        grupos_inv.back().second++;
+                    }
+                    else {
+                        grupos_inv.push_back({ paolo.inventario[i], 1 });
                     }
                 }
+
+                // Aseguramos que el cursor no se salga del rango de grupos
+                if (cursor_inventario >= static_cast<int>(grupos_inv.size())) {
+                    cursor_inventario = static_cast<int>(grupos_inv.size()) - 1;
+                }
+                if (cursor_inventario < 0) cursor_inventario = 0;
+
+                for (int i = 0; i < static_cast<int>(grupos_inv.size()) && i < 10; i++) {
+                    std::string texto_item = grupos_inv[i].first;
+                    if (grupos_inv[i].second > 1) {
+                        texto_item += " x " + std::to_string(grupos_inv[i].second);
+                    }
+
+                    sf::Text item_texto(alagard);
+                    item_texto.setCharacterSize(22);
+                    item_texto.setPosition({ 450.0f, 150.0f + (i * 35.0f) });
+
+                    if (i == cursor_inventario) {
+                        item_texto.setFillColor(sf::Color::Red);
+                        item_texto.setString("> " + texto_item + " <");
+                    }
+                    else {
+                        item_texto.setFillColor(sf::Color::White);
+                        item_texto.setString(texto_item);
+                    }
+                    window.draw(item_texto);
+                }
+
+                sf::Text consejo_inv(alagard);
+                consejo_inv.setString("Tip: guarda pociones para el Boss final!");
+                consejo_inv.setCharacterSize(16);
+                consejo_inv.setFillColor(sf::Color(255, 215, 0));
+                consejo_inv.setOutlineColor(sf::Color::Black);
+                consejo_inv.setOutlineThickness(1.0f);
+                consejo_inv.setPosition({ 60.0f, 490.0f });
+                window.draw(consejo_inv);
 
                 sf::Text controles_inv(alagard);
                 controles_inv.setString("W/S = Mover | ENTER = Equipar / Usar | 6 = Ordenar | ESC / 5 = Salir");
@@ -1484,6 +1635,19 @@ int iniciarjuego() {
                         window.draw(item_texto);
                     }
                 }
+
+                sf::Text consejo_tienda(alagard);
+                consejo_tienda.setString("Consejo: guarda pociones para enfrentar al Boss final!");
+                consejo_tienda.setCharacterSize(18);
+                consejo_tienda.setFillColor(sf::Color(255, 215, 0));
+                consejo_tienda.setOutlineColor(sf::Color::Black);
+                consejo_tienda.setOutlineThickness(1.0f);
+                {
+                    auto b = consejo_tienda.getLocalBounds();
+                    consejo_tienda.setOrigin({ b.size.x / 2.0f, 0.0f });
+                }
+                consejo_tienda.setPosition({ window.getSize().x / 2.0f, 470.0f });
+                window.draw(consejo_tienda);
 
                 sf::Text controles_tienda(alagard);
                 controles_tienda.setString("A/D = Cambiar Panel | W/S = Mover | ENTER = Confirmar | ESC = Salir");
