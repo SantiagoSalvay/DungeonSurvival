@@ -1,18 +1,16 @@
 #PARTIDA
 
-1780330919
-22
+1780399072
+10
 100
 Palo
 
 8
 0
 1
-3
-3
+1
 4
-Pocion Chica
-Pocion Chica
+2
 Pocion Chica
 Palo
 #ENTIDADES
@@ -49,15 +47,15 @@ Palo
 
 
 
+C
+
+
+
+
+
+
+
 P
-
-
-
-
-
-
-
-
 
 
 

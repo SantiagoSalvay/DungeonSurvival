@@ -5,12 +5,16 @@
 #include <optional>
 #include <algorithm>
 #include <sstream>
+#include <cmath>
+#include <cstdlib>
 #include "Menu.h"
 #include "Mapa.h"
 #include "funciones.h"
 #include "structs.h"
 
 enum estado_pantalla { menu_principal, jugando, cargar, controles, reglas, creditos, en_tienda, en_batalla, en_inventario, confirmar_guardado, aviso_guardado };
+
+enum class fase_batalla { espera_input, anim_pj_ataca, anim_enemigo_ataca, anim_pocion, ganada, perdida, huida };
 
 int iniciarjuego() {
     sf::RenderWindow window(sf::VideoMode({ 800, 800 }), "Dungeon Survival");
@@ -133,7 +137,7 @@ int iniciarjuego() {
     string matriz_entidades[max_filas][max_columnas];
     cargarnivel(1, matriz_fondo, matriz_entidades);
 
-    sf::Texture tex_suelo, tex_pared_arriba, tex_pared_abajo, tex_pared_izq, tex_pared_der, tex_prota, tex_boss, tex_enemigo, tex_mercader, tex_cofre, tex_salida;
+    sf::Texture tex_suelo, tex_pared_arriba, tex_pared_abajo, tex_pared_izq, tex_pared_der, tex_prota, tex_boss, tex_enemigo, tex_mercader, tex_cofre, tex_salida, tex_fondo_pelea;
     (void)tex_suelo.loadFromFile("suelo.jpg");
     (void)tex_pared_izq.loadFromFile("customladrillo.png");
     (void)tex_pared_abajo.loadFromFile("customladrillo.png");
@@ -145,6 +149,27 @@ int iniciarjuego() {
     (void)tex_cofre.loadFromFile("cofre.png");
     (void)tex_salida.loadFromFile("salida.png");
     (void)tex_boss.loadFromFile("boss-01.png");
+    (void)tex_fondo_pelea.loadFromFile("fondo_pelea.png");
+
+    sf::Sprite sprite_fondo_pelea(tex_fondo_pelea);
+    {
+        auto tam_fondo = tex_fondo_pelea.getSize();
+        if (tam_fondo.x > 0 && tam_fondo.y > 0) {
+            sprite_fondo_pelea.setScale({ 800.0f / static_cast<float>(tam_fondo.x), 800.0f / static_cast<float>(tam_fondo.y) });
+        }
+    }
+
+    // --- VARIABLES DEL COMBATE POR TURNOS ---
+    enemigo enemigo_actual;
+    int enemigo_pos_x = -1;
+    int enemigo_pos_y = -1;
+    int enemigo_vida_max = 0;
+    bool es_boss_actual = false;
+    bool defendiendo = false;
+    fase_batalla fase_actual = fase_batalla::espera_input;
+    sf::Clock reloj_anim_batalla;
+    const float duracion_anim = 0.55f;
+    std::string mensaje_batalla = "";
 
     personaje paolo;
     protagonista(paolo);
@@ -470,6 +495,33 @@ int iniciarjuego() {
                                 aviso_puerta = false;
                             }
                             else if (resultado == 'E' || resultado == 'B') {
+                                // Busca al enemigo adyacente (mismo orden que la funcion interactuar)
+                                int px = paolo.posicion_x;
+                                int py = paolo.posicion_y;
+                                enemigo_pos_x = -1;
+                                enemigo_pos_y = -1;
+                                int dxs[4] = { 0, 0, 1, -1 };
+                                int dys[4] = { -1, 1, 0, 0 };
+                                for (int d = 0; d < 4; d++) {
+                                    int nx = px + dxs[d];
+                                    int ny = py + dys[d];
+                                    if (nx >= 0 && nx < max_columnas && ny >= 0 && ny < max_filas) {
+                                        if (matriz_entidades[ny][nx] == "E" || matriz_entidades[ny][nx] == "B") {
+                                            enemigo_pos_x = nx;
+                                            enemigo_pos_y = ny;
+                                            es_boss_actual = (matriz_entidades[ny][nx] == "B");
+                                            break;
+                                        }
+                                    }
+                                }
+                                inicializarenemigo(enemigo_actual, es_boss_actual);
+                                enemigo_vida_max = enemigo_actual.vida;
+                                fase_actual = fase_batalla::espera_input;
+                                defendiendo = false;
+                                mensaje_batalla = es_boss_actual
+                                    ? "Un Boss aparece! Que haces?"
+                                    : "Un enemigo se cruza en tu camino!";
+                                reloj_anim_batalla.restart();
                                 estado_actual = en_batalla;
                                 aviso_puerta = false;
                             }
@@ -575,10 +627,299 @@ int iniciarjuego() {
                         }
                     }
                 }
+                else if (estado_actual == en_batalla) {
+                    // Si la batalla termino, ENTER vuelve al juego o al menu
+                    if (fase_actual == fase_batalla::ganada || fase_actual == fase_batalla::huida) {
+                        if (key_pressed->code == sf::Keyboard::Key::Enter) {
+                            estado_actual = jugando;
+                        }
+                    }
+                    else if (fase_actual == fase_batalla::perdida) {
+                        if (key_pressed->code == sf::Keyboard::Key::Enter) {
+                            // Resetea al protagonista y vuelve al menu
+                            protagonista(paolo);
+                            cargarnivel(paolo.nivel_actual, matriz_fondo, matriz_entidades);
+                            estado_actual = menu_principal;
+                        }
+                    }
+                    // Solo aceptamos input cuando es el turno del jugador
+                    else if (fase_actual == fase_batalla::espera_input) {
+                        if (key_pressed->code == sf::Keyboard::Key::Num1) {
+                            reloj_anim_batalla.restart();
+                            fase_actual = fase_batalla::anim_pj_ataca;
+                            mensaje_batalla = "Atacas al " + enemigo_actual.nombre + "!";
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::Num2) {
+                            // Busca una pocion en el inventario
+                            int idx_poc = -1;
+                            for (int i = 0; i < paolo.cant_items; i++) {
+                                if (paolo.inventario[i] == "Pocion Chica" ||
+                                    paolo.inventario[i] == "Pocion Pequena" ||
+                                    paolo.inventario[i] == "Pocion Grande") {
+                                    idx_poc = i;
+                                    break;
+                                }
+                            }
+                            if (idx_poc >= 0) {
+                                std::string nombre_poc = paolo.inventario[idx_poc];
+                                int curar = (nombre_poc == "Pocion Grande") ? 50 : 20;
+                                paolo.vida += curar;
+                                int vida_max = 100 + paolo.defensa;
+                                if (paolo.vida > vida_max) paolo.vida = vida_max;
+                                for (int i = idx_poc; i < paolo.cant_items - 1; i++) {
+                                    paolo.inventario[i] = paolo.inventario[i + 1];
+                                }
+                                paolo.cant_items--;
+                                mensaje_batalla = "Usaste " + nombre_poc + " (+" + std::to_string(curar) + " HP)";
+                                reloj_anim_batalla.restart();
+                                fase_actual = fase_batalla::anim_pocion;
+                            }
+                            else {
+                                mensaje_batalla = "No tienes pociones para usar!";
+                            }
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::Num3) {
+                            defendiendo = true;
+                            mensaje_batalla = "Te preparas para defender el proximo ataque.";
+                            reloj_anim_batalla.restart();
+                            fase_actual = fase_batalla::anim_enemigo_ataca;
+                        }
+                        else if (key_pressed->code == sf::Keyboard::Key::Num4) {
+                            if (es_boss_actual) {
+                                mensaje_batalla = "No puedes huir del Boss!";
+                            }
+                            else {
+                                int chance = std::rand() % 100;
+                                if (chance < 55) {
+                                    mensaje_batalla = "Lograste huir del combate! (ENTER)";
+                                    fase_actual = fase_batalla::huida;
+                                }
+                                else {
+                                    mensaje_batalla = "Fallaste la huida! El enemigo aprovecha y ataca!";
+                                    reloj_anim_batalla.restart();
+                                    fase_actual = fase_batalla::anim_enemigo_ataca;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // --- ACTUALIZACION DEL TURNO Y ANIMACIONES DE BATALLA ---
+        if (estado_actual == en_batalla) {
+            float t_anim = reloj_anim_batalla.getElapsedTime().asSeconds();
+
+            if (fase_actual == fase_batalla::anim_pj_ataca && t_anim >= duracion_anim) {
+                // Calculo de dano al enemigo
+                int dano_base = paolo.ataque + (std::rand() % 5);
+                int dano_real = dano_base - enemigo_actual.defensa;
+                if (dano_real < 1) dano_real = 1;
+                enemigo_actual.vida -= dano_real;
+
+                if (enemigo_actual.vida <= 0) {
+                    enemigo_actual.vida = 0;
+                    // Recompensa segun tipo de enemigo
+                    int recompensa = es_boss_actual ? (60 + std::rand() % 41) : (10 + std::rand() % 16);
+                    paolo.oro += recompensa;
+                    // Borramos al enemigo del mapa
+                    if (enemigo_pos_x >= 0 && enemigo_pos_y >= 0 &&
+                        enemigo_pos_y < max_filas && enemigo_pos_x < max_columnas) {
+                        matriz_entidades[enemigo_pos_y][enemigo_pos_x] = "";
+                    }
+                    mensaje_batalla = "Victoria! Causaste " + std::to_string(dano_real) +
+                        " de dano final. Ganaste " + std::to_string(recompensa) + " de oro. (ENTER)";
+                    fase_actual = fase_batalla::ganada;
+                    // Guardamos automaticamente la partida tras la victoria
+                    guardarPartida(paolo, matriz_entidades);
+                }
+                else {
+                    mensaje_batalla = "Causaste " + std::to_string(dano_real) + " de dano al " + enemigo_actual.nombre + ".";
+                    reloj_anim_batalla.restart();
+                    fase_actual = fase_batalla::anim_enemigo_ataca;
+                }
+            }
+            else if (fase_actual == fase_batalla::anim_enemigo_ataca && t_anim >= duracion_anim) {
+                // Calculo de dano al jugador (la armadura suma a HP, ademas reduce un poco el dano recibido)
+                int dano_base = enemigo_actual.ataque + (std::rand() % 4);
+                int dano_real = dano_base - (paolo.defensa / 10);
+                if (defendiendo) {
+                    dano_real = dano_real / 2;
+                    defendiendo = false;
+                }
+                if (dano_real < 1) dano_real = 1;
+                paolo.vida -= dano_real;
+
+                if (paolo.vida <= 0) {
+                    paolo.vida = 0;
+                    mensaje_batalla = "Has caido en batalla... (ENTER para volver al menu)";
+                    fase_actual = fase_batalla::perdida;
+                }
+                else {
+                    mensaje_batalla = "El " + enemigo_actual.nombre + " te causa " +
+                        std::to_string(dano_real) + " de dano. Tu turno! (1/2/3/4)";
+                    fase_actual = fase_batalla::espera_input;
+                }
+            }
+            else if (fase_actual == fase_batalla::anim_pocion && t_anim >= duracion_anim) {
+                // Tras curarse, ataca el enemigo
+                reloj_anim_batalla.restart();
+                fase_actual = fase_batalla::anim_enemigo_ataca;
             }
         }
 
         window.clear();
+
+        if (estado_actual == en_batalla) {
+            // === RENDER DE LA PANTALLA DE BATALLA ===
+            window.draw(sprite_fondo_pelea);
+
+            // Calculo del desplazamiento de la animacion (curva senoidal)
+            float t_norm = reloj_anim_batalla.getElapsedTime().asSeconds() / duracion_anim;
+            if (t_norm > 1.0f) t_norm = 1.0f;
+            float offset_pj = 0.f;
+            float offset_en = 0.f;
+            if (fase_actual == fase_batalla::anim_pj_ataca) {
+                offset_pj = std::sin(t_norm * 3.14159265f) * 130.f;
+            }
+            else if (fase_actual == fase_batalla::anim_enemigo_ataca) {
+                offset_en = -std::sin(t_norm * 3.14159265f) * 130.f;
+            }
+            else if (fase_actual == fase_batalla::anim_pocion) {
+                offset_pj = std::sin(t_norm * 3.14159265f * 4.f) * 12.f;
+            }
+
+            // Sprite del protagonista (izquierda)
+            sf::Sprite sprite_pj_batalla(tex_prota);
+            {
+                auto tam_pj = tex_prota.getSize();
+                if (tam_pj.x > 0) {
+                    float escala = 220.f / static_cast<float>(tam_pj.x);
+                    sprite_pj_batalla.setScale({ escala, escala });
+                }
+            }
+            sprite_pj_batalla.setPosition({ 110.f + offset_pj, 340.f });
+            window.draw(sprite_pj_batalla);
+
+            // Sprite del enemigo (derecha)
+            sf::Sprite sprite_enemigo_batalla(es_boss_actual ? tex_boss : tex_enemigo);
+            {
+                auto tam_en = (es_boss_actual ? tex_boss : tex_enemigo).getSize();
+                if (tam_en.x > 0) {
+                    float escala = 220.f / static_cast<float>(tam_en.x);
+                    sprite_enemigo_batalla.setScale({ escala, escala });
+                }
+            }
+            sprite_enemigo_batalla.setPosition({ 470.f + offset_en, 340.f });
+            window.draw(sprite_enemigo_batalla);
+
+            // --- BARRA DE VIDA DEL PROTAGONISTA ---
+            int vida_max_pj = 100 + paolo.defensa;
+            float porc_pj = (vida_max_pj > 0) ? (static_cast<float>(paolo.vida) / static_cast<float>(vida_max_pj)) : 0.f;
+            if (porc_pj < 0.f) porc_pj = 0.f;
+            if (porc_pj > 1.f) porc_pj = 1.f;
+
+            sf::RectangleShape marco_vida_pj({ 240.f, 24.f });
+            marco_vida_pj.setPosition({ 40.f, 110.f });
+            marco_vida_pj.setFillColor(sf::Color(30, 30, 30, 220));
+            marco_vida_pj.setOutlineColor(sf::Color::White);
+            marco_vida_pj.setOutlineThickness(2.f);
+            window.draw(marco_vida_pj);
+
+            sf::RectangleShape barra_vida_pj({ 240.f * porc_pj, 24.f });
+            barra_vida_pj.setPosition({ 40.f, 110.f });
+            barra_vida_pj.setFillColor(sf::Color(70, 200, 70));
+            window.draw(barra_vida_pj);
+
+            sf::Text nombre_pj(alagard);
+            nombre_pj.setString((paolo.name.empty() ? std::string("Paolo") : paolo.name) +
+                "   HP: " + std::to_string(paolo.vida) + " / " + std::to_string(vida_max_pj));
+            nombre_pj.setCharacterSize(20);
+            nombre_pj.setFillColor(sf::Color::White);
+            nombre_pj.setOutlineColor(sf::Color::Black);
+            nombre_pj.setOutlineThickness(2.f);
+            nombre_pj.setPosition({ 40.f, 75.f });
+            window.draw(nombre_pj);
+
+            // --- BARRA DE VIDA DEL ENEMIGO ---
+            float porc_en = (enemigo_vida_max > 0) ? (static_cast<float>(enemigo_actual.vida) / static_cast<float>(enemigo_vida_max)) : 0.f;
+            if (porc_en < 0.f) porc_en = 0.f;
+            if (porc_en > 1.f) porc_en = 1.f;
+
+            sf::RectangleShape marco_vida_en({ 240.f, 24.f });
+            marco_vida_en.setPosition({ 520.f, 110.f });
+            marco_vida_en.setFillColor(sf::Color(30, 30, 30, 220));
+            marco_vida_en.setOutlineColor(sf::Color::White);
+            marco_vida_en.setOutlineThickness(2.f);
+            window.draw(marco_vida_en);
+
+            sf::RectangleShape barra_vida_en({ 240.f * porc_en, 24.f });
+            barra_vida_en.setPosition({ 520.f, 110.f });
+            barra_vida_en.setFillColor(sf::Color(200, 60, 60));
+            window.draw(barra_vida_en);
+
+            sf::Text nombre_en(alagard);
+            nombre_en.setString(enemigo_actual.nombre + "   HP: " +
+                std::to_string(enemigo_actual.vida) + " / " + std::to_string(enemigo_vida_max));
+            nombre_en.setCharacterSize(20);
+            nombre_en.setFillColor(sf::Color::White);
+            nombre_en.setOutlineColor(sf::Color::Black);
+            nombre_en.setOutlineThickness(2.f);
+            nombre_en.setPosition({ 520.f, 75.f });
+            window.draw(nombre_en);
+
+            // --- PANEL INFERIOR DE MENSAJES Y OPCIONES ---
+            sf::RectangleShape panel_batalla({ 760.f, 180.f });
+            panel_batalla.setPosition({ 20.f, 600.f });
+            panel_batalla.setFillColor(sf::Color(0, 0, 0, 220));
+            panel_batalla.setOutlineColor(sf::Color(180, 180, 180));
+            panel_batalla.setOutlineThickness(3.f);
+            window.draw(panel_batalla);
+
+            sf::Text texto_mensaje(alagard);
+            texto_mensaje.setString(mensaje_batalla);
+            texto_mensaje.setCharacterSize(20);
+            texto_mensaje.setFillColor(sf::Color::Yellow);
+            texto_mensaje.setPosition({ 40.f, 615.f });
+            window.draw(texto_mensaje);
+
+            if (fase_actual == fase_batalla::espera_input) {
+                sf::Text texto_opciones(alagard);
+                texto_opciones.setString("1) Atacar     2) Usar Pocion     3) Defender     4) Huir");
+                texto_opciones.setCharacterSize(22);
+                texto_opciones.setFillColor(sf::Color::White);
+                texto_opciones.setPosition({ 40.f, 720.f });
+                window.draw(texto_opciones);
+            }
+            else if (fase_actual == fase_batalla::ganada) {
+                sf::Text texto_resultado(alagard);
+                texto_resultado.setString("VICTORIA - Partida guardada automaticamente");
+                texto_resultado.setCharacterSize(22);
+                texto_resultado.setFillColor(sf::Color(60, 220, 60));
+                texto_resultado.setPosition({ 40.f, 720.f });
+                window.draw(texto_resultado);
+            }
+            else if (fase_actual == fase_batalla::perdida) {
+                sf::Text texto_resultado(alagard);
+                texto_resultado.setString("DERROTA - ENTER para volver al menu");
+                texto_resultado.setCharacterSize(22);
+                texto_resultado.setFillColor(sf::Color(220, 60, 60));
+                texto_resultado.setPosition({ 40.f, 720.f });
+                window.draw(texto_resultado);
+            }
+            else if (fase_actual == fase_batalla::huida) {
+                sf::Text texto_resultado(alagard);
+                texto_resultado.setString("Escapaste con vida - ENTER para continuar");
+                texto_resultado.setCharacterSize(22);
+                texto_resultado.setFillColor(sf::Color::Cyan);
+                texto_resultado.setPosition({ 40.f, 720.f });
+                window.draw(texto_resultado);
+            }
+
+            window.display();
+            continue;
+        }
+
         window.draw(sprite_fondo);
 
         if (estado_actual == menu_principal) {

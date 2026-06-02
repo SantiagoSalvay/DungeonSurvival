@@ -43,3 +43,19 @@ void inicializarmercader(mercader& vendedor) {
 
 void abrircofre() {
 }
+
+// Inicializa las stats del enemigo segun si es jefe o enemigo comun
+void inicializarenemigo(enemigo& en, bool es_boss) {
+	if (es_boss) {
+		en.nombre = "Boss";
+		en.vida = 150;
+		en.ataque = 18;
+		en.defensa = 8;
+	}
+	else {
+		en.nombre = "Enemigo";
+		en.vida = 45;
+		en.ataque = 10;
+		en.defensa = 3;
+	}
+}
