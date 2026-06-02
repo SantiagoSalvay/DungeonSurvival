@@ -4,19 +4,19 @@
 
 // Carga de las stats principales de paolo
 void protagonista(personaje& pj) {
-	pj.oro = 10; 
+	pj.oro = 10;
 	pj.vida = 100;
 	pj.ataque = 8;
 	pj.defensa = 0;
-	pj.arma_equipada = "Palo";
+	pj.arma_equipada = "";
 	pj.armadura_equipada = "";
 	pj.posicion_x = 1;
 	pj.posicion_y = 1;
 	pj.nivel_actual = 1;
 
-	// Inventario
-	pj.inventario[0] = "Pocion Chica";
-	pj.inventario[1] = "Palo";
+	// Inventario: el palo viene en la mochila para que el jugador decida equiparlo
+	pj.inventario[0] = "Palo";
+	pj.inventario[1] = "Pocion Chica";
 	pj.cant_items = 2;
 }
 

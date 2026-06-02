@@ -12,7 +12,7 @@
 #include "funciones.h"
 #include "structs.h"
 
-enum estado_pantalla { menu_principal, jugando, cargar, controles, reglas, creditos, en_tienda, en_batalla, en_inventario, confirmar_guardado, aviso_guardado, pedir_nombre };
+enum estado_pantalla { menu_principal, jugando, cargar, controles, reglas, creditos, en_tienda, en_batalla, en_inventario, confirmar_guardado, aviso_guardado, pedir_nombre, intro_historia };
 
 enum class fase_batalla {
     cinematica_boss,
@@ -22,6 +22,7 @@ enum class fase_batalla {
     anim_pocion,
     cinematica_curacion_boss,
     cinematica_ataque_especial_boss,
+    cinematica_golpe_devastador,
     ganada,
     victoria_final,
     perdida,
@@ -184,10 +185,24 @@ int iniciarjuego() {
     const float duracion_anim = 0.55f;
     const float duracion_curacion = 4.5f;
     const float duracion_ataque_especial = 4.0f;
+    const float duracion_golpe_devastador = 3.8f;
+    const float duracion_derrota = 4.5f;
     std::string mensaje_batalla = "";
 
-    // --- VARIABLE PARA PEDIR EL NOMBRE DEL PERSONAJE ---
+    // --- VARIABLES PARA PEDIR EL NOMBRE Y MOSTRAR LA INTRO ---
     std::string nombre_input = "";
+    sf::Clock reloj_intro;
+
+    // Helper: decide si el boss hace su ataque normal o un golpe devastador.
+    // Solo se activa tras la regeneracion (boss_se_curo == true) con 25% de probabilidad.
+    auto iniciar_turno_enemigo = [&]() {
+        if (es_boss_actual && boss_se_curo && (std::rand() % 100) < 25) {
+            fase_actual = fase_batalla::cinematica_golpe_devastador;
+        }
+        else {
+            fase_actual = fase_batalla::anim_enemigo_ataca;
+        }
+    };
 
     personaje paolo;
     protagonista(paolo);
@@ -399,11 +414,20 @@ int iniciarjuego() {
                         protagonista(paolo);
                         paolo.name = nombre_final;
                         cargarnivel(paolo.nivel_actual, matriz_fondo, matriz_entidades);
-                        estado_actual = jugando;
+                        // Antes de empezar, mostramos la cinematica de introduccion
+                        reloj_intro.restart();
+                        estado_actual = intro_historia;
                     }
                     else if (key_pressed->code == sf::Keyboard::Key::Escape) {
                         // Cancelar: vuelve al menu
                         estado_actual = menu_principal;
+                    }
+                }
+                else if (estado_actual == intro_historia) {
+                    // Solo aceptamos E (o ENTER) para empezar el juego
+                    if (key_pressed->code == sf::Keyboard::Key::E ||
+                        key_pressed->code == sf::Keyboard::Key::Enter) {
+                        estado_actual = jugando;
                     }
                 }
                 else if (estado_actual == cargar && opciones_carga.empty()) {
@@ -814,7 +838,9 @@ int iniciarjuego() {
                         }
                     }
                     else if (fase_actual == fase_batalla::perdida) {
-                        if (key_pressed->code == sf::Keyboard::Key::Enter) {
+                        // Solo aceptamos ENTER tras la cinematica de derrota
+                        if (key_pressed->code == sf::Keyboard::Key::Enter &&
+                            reloj_anim_batalla.getElapsedTime().asSeconds() >= duracion_derrota) {
                             // Resetea al protagonista y vuelve al menu
                             protagonista(paolo);
                             cargarnivel(paolo.nivel_actual, matriz_fondo, matriz_entidades);
@@ -869,7 +895,7 @@ int iniciarjuego() {
                             defendiendo = true;
                             mensaje_batalla = "Te preparas para defender el proximo ataque.";
                             reloj_anim_batalla.restart();
-                            fase_actual = fase_batalla::anim_enemigo_ataca;
+                            iniciar_turno_enemigo();
                         }
                         else if (key_pressed->code == sf::Keyboard::Key::Num4) {
                             if (es_boss_actual) {
@@ -884,7 +910,7 @@ int iniciarjuego() {
                                 else {
                                     mensaje_batalla = "Fallaste la huida! El enemigo aprovecha y ataca!";
                                     reloj_anim_batalla.restart();
-                                    fase_actual = fase_batalla::anim_enemigo_ataca;
+                                    iniciar_turno_enemigo();
                                 }
                             }
                         }
@@ -907,7 +933,7 @@ int iniciarjuego() {
                 if (fallo_por_miedo) {
                     mensaje_batalla = "Te paralizas de miedo y fallas el ataque!";
                     reloj_anim_batalla.restart();
-                    fase_actual = fase_batalla::anim_enemigo_ataca;
+                    iniciar_turno_enemigo();
                 }
                 else {
                     // El jugador hace ~150% del dano base (ventaja clara contra enemigos)
@@ -950,7 +976,7 @@ int iniciarjuego() {
                     else {
                         mensaje_batalla = "Causaste " + std::to_string(dano_real) + " de dano al " + enemigo_actual.nombre + ".";
                         reloj_anim_batalla.restart();
-                        fase_actual = fase_batalla::anim_enemigo_ataca;
+                        iniciar_turno_enemigo();
                     }
                 }
             }
@@ -968,7 +994,8 @@ int iniciarjuego() {
 
                 if (paolo.vida <= 0) {
                     paolo.vida = 0;
-                    mensaje_batalla = "Has caido en batalla... (ENTER para volver al menu)";
+                    mensaje_batalla = "Has caido en batalla...";
+                    reloj_anim_batalla.restart();
                     fase_actual = fase_batalla::perdida;
                 }
                 else {
@@ -980,7 +1007,7 @@ int iniciarjuego() {
             else if (fase_actual == fase_batalla::anim_pocion && t_anim >= duracion_anim) {
                 // Tras curarse, ataca el enemigo
                 reloj_anim_batalla.restart();
-                fase_actual = fase_batalla::anim_enemigo_ataca;
+                iniciar_turno_enemigo();
             }
             else if (fase_actual == fase_batalla::cinematica_curacion_boss && t_anim >= duracion_curacion) {
                 // El boss recupera el 50% de su HP maxima
@@ -1004,11 +1031,35 @@ int iniciarjuego() {
 
                 if (paolo.vida <= 0) {
                     paolo.vida = 0;
-                    mensaje_batalla = "El ataque especial te derroto... (ENTER)";
+                    mensaje_batalla = "El ataque especial te derroto...";
+                    reloj_anim_batalla.restart();
                     fase_actual = fase_batalla::perdida;
                 }
                 else {
                     mensaje_batalla = "El ataque especial te causa " + std::to_string(dano_real) +
+                        " de dano! Tu turno. (1/2/3)";
+                    fase_actual = fase_batalla::espera_input;
+                }
+            }
+            else if (fase_actual == fase_batalla::cinematica_golpe_devastador && t_anim >= duracion_golpe_devastador) {
+                // Golpe devastador: 1.5x del ataque base del boss
+                int dano_base = (enemigo_actual.ataque * 80) / 100 + (std::rand() % 4);
+                int dano_real = (dano_base * 3) / 2 - (paolo.defensa / 10);
+                if (defendiendo) {
+                    dano_real = dano_real / 2;
+                    defendiendo = false;
+                }
+                if (dano_real < 1) dano_real = 1;
+                paolo.vida -= dano_real;
+
+                if (paolo.vida <= 0) {
+                    paolo.vida = 0;
+                    mensaje_batalla = "El golpe devastador te derroto...";
+                    reloj_anim_batalla.restart();
+                    fase_actual = fase_batalla::perdida;
+                }
+                else {
+                    mensaje_batalla = "El golpe devastador te causa " + std::to_string(dano_real) +
                         " de dano! Tu turno. (1/2/3)";
                     fase_actual = fase_batalla::espera_input;
                 }
@@ -1152,6 +1203,29 @@ int iniciarjuego() {
                 escala_extra_en = 1.f + std::min(1.f, t_atk / 2.0f) * 0.4f;
                 offset_en = std::sin(t_atk * 45.f) * 8.f;
                 offset_y_en = std::cos(t_atk * 40.f) * 6.f;
+            }
+            else if (fase_actual == fase_batalla::cinematica_golpe_devastador) {
+                // El boss salta enorme: primero sube y desaparece, luego cae sobre el jugador
+                float t_dev = reloj_anim_batalla.getElapsedTime().asSeconds();
+                if (t_dev < 1.4f) {
+                    // Sube fuera del campo de vision
+                    float prog = t_dev / 1.4f;
+                    offset_y_en = -prog * 700.f;
+                    escala_extra_en = 1.f + prog * 0.3f;
+                }
+                else if (t_dev < duracion_golpe_devastador - 0.6f) {
+                    // Esta fuera de pantalla preparando el golpe
+                    offset_y_en = -800.f;
+                }
+                else {
+                    // Cae a toda velocidad sobre el jugador (lado izquierdo)
+                    float t_caida = (t_dev - (duracion_golpe_devastador - 0.6f)) / 0.6f;
+                    if (t_caida > 1.f) t_caida = 1.f;
+                    // Desde -800 a 0, pero ahora ubicado del lado del jugador
+                    offset_y_en = -800.f + t_caida * t_caida * 1140.f;
+                    offset_en = -360.f;
+                    escala_extra_en = 1.3f;
+                }
             }
 
             // Sprite del protagonista (izquierda)
@@ -1398,6 +1472,124 @@ int iniciarjuego() {
                 window.draw(sub_atk);
             }
 
+            // === CINEMATICA DE GOLPE DEVASTADOR (overlay sobre la batalla) ===
+            if (fase_actual == fase_batalla::cinematica_golpe_devastador) {
+                const float PI = 3.14159265f;
+                float td = reloj_anim_batalla.getElapsedTime().asSeconds();
+
+                // Etapa 1: el boss salta y oscurece la pantalla (0 - 1.4s)
+                if (td < 1.4f) {
+                    float prog = td / 1.4f;
+                    sf::RectangleShape velo_d({ 800.f, 800.f });
+                    velo_d.setFillColor(sf::Color(80, 0, 0, static_cast<std::uint8_t>(prog * 80.f)));
+                    window.draw(velo_d);
+
+                    // Texto: "EL GUARDIAN SALTA AL CIELO"
+                    float alpha_t = std::sin(prog * PI) * 255.f;
+                    sf::Text salto(alagard);
+                    salto.setString("El Guardian se eleva...");
+                    salto.setCharacterSize(34);
+                    salto.setFillColor(sf::Color(255, 200, 100, static_cast<std::uint8_t>(alpha_t)));
+                    salto.setOutlineColor(sf::Color::Black);
+                    salto.setOutlineThickness(3.f);
+                    {
+                        auto b = salto.getLocalBounds();
+                        salto.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    salto.setPosition({ 400.f, 260.f });
+                    window.draw(salto);
+                }
+                // Etapa 2: telegrafeo - sombra que crece sobre el jugador (1.4s - duracion-0.6)
+                else if (td < duracion_golpe_devastador - 0.6f) {
+                    float t_local = td - 1.4f;
+                    float dur_etapa = (duracion_golpe_devastador - 0.6f) - 1.4f;
+                    float prog = (dur_etapa > 0.f) ? (t_local / dur_etapa) : 1.f;
+
+                    // Velo oscuro
+                    sf::RectangleShape velo_d({ 800.f, 800.f });
+                    velo_d.setFillColor(sf::Color(80, 0, 0, 130));
+                    window.draw(velo_d);
+
+                    // Sombra que crece bajo el jugador
+                    float radio_sombra = 30.f + prog * 110.f;
+                    sf::CircleShape sombra(radio_sombra);
+                    sombra.setScale({ 1.f, 0.4f });
+                    sombra.setOrigin({ radio_sombra, radio_sombra });
+                    sombra.setPosition({ 220.f, 540.f });
+                    sombra.setFillColor(sf::Color(0, 0, 0, 200));
+                    window.draw(sombra);
+
+                    // Anillos rojos pulsantes telegrafeando el peligro
+                    float radio_anillo = 60.f + std::sin(td * 12.f) * 18.f;
+                    sf::CircleShape anillo(radio_anillo);
+                    anillo.setScale({ 1.f, 0.4f });
+                    anillo.setOrigin({ radio_anillo, radio_anillo });
+                    anillo.setPosition({ 220.f, 540.f });
+                    anillo.setFillColor(sf::Color::Transparent);
+                    anillo.setOutlineColor(sf::Color(255, 50, 50, 220));
+                    anillo.setOutlineThickness(3.f);
+                    window.draw(anillo);
+
+                    // Texto centrado de advertencia con pulso
+                    float pulso_w = (std::sin(td * 8.f) + 1.f) * 0.5f;
+                    std::uint8_t alpha_w = static_cast<std::uint8_t>(180 + pulso_w * 75);
+                    sf::Text peligro(alagard);
+                    peligro.setString("CUIDADO!");
+                    peligro.setCharacterSize(44);
+                    peligro.setFillColor(sf::Color(255, 60, 60, alpha_w));
+                    peligro.setOutlineColor(sf::Color(0, 0, 0, alpha_w));
+                    peligro.setOutlineThickness(4.f);
+                    {
+                        auto b = peligro.getLocalBounds();
+                        peligro.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    peligro.setPosition({ 400.f + std::sin(td * 30.f) * 4.f, 240.f });
+                    window.draw(peligro);
+                }
+                // Etapa 3: cae - impacto (ultimos 0.6s)
+                else {
+                    float t_imp = td - (duracion_golpe_devastador - 0.6f);
+                    float prog_imp = t_imp / 0.6f;
+
+                    // Flash blanco al inicio del impacto
+                    float alpha_flash = std::sin(prog_imp * PI) * 230.f;
+                    sf::RectangleShape flash({ 800.f, 800.f });
+                    flash.setFillColor(sf::Color(255, 240, 200, static_cast<std::uint8_t>(alpha_flash)));
+                    window.draw(flash);
+
+                    // Ondas de choque desde el punto de impacto
+                    if (prog_imp > 0.3f) {
+                        for (int k = 0; k < 3; k++) {
+                            float ph = (prog_imp - 0.3f) / 0.7f + k * 0.2f;
+                            if (ph < 0.f || ph > 1.f) continue;
+                            float radio = 50.f + ph * 380.f;
+                            sf::CircleShape onda(radio);
+                            onda.setOrigin({ radio, radio });
+                            onda.setPosition({ 220.f, 540.f });
+                            onda.setFillColor(sf::Color::Transparent);
+                            onda.setOutlineColor(sf::Color(255, 200, 100, static_cast<std::uint8_t>((1.f - ph) * 220.f)));
+                            onda.setOutlineThickness(4.f);
+                            window.draw(onda);
+                        }
+                    }
+
+                    // Texto "GOLPE DEVASTADOR" muy grande con sacudidas
+                    sf::Text titulo_d(alagard);
+                    titulo_d.setString("GOLPE DEVASTADOR");
+                    titulo_d.setCharacterSize(54);
+                    titulo_d.setFillColor(sf::Color(255, 100, 60));
+                    titulo_d.setOutlineColor(sf::Color::Black);
+                    titulo_d.setOutlineThickness(5.f);
+                    {
+                        auto b = titulo_d.getLocalBounds();
+                        titulo_d.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    titulo_d.setPosition({ 400.f + std::sin(td * 80.f) * 8.f,
+                                            260.f + std::cos(td * 70.f) * 6.f });
+                    window.draw(titulo_d);
+                }
+            }
+
             // --- PANEL INFERIOR DE MENSAJES Y OPCIONES ---
             sf::RectangleShape panel_batalla({ 760.f, 180.f });
             panel_batalla.setPosition({ 20.f, 600.f });
@@ -1429,14 +1621,7 @@ int iniciarjuego() {
                 texto_resultado.setPosition({ 40.f, 720.f });
                 window.draw(texto_resultado);
             }
-            else if (fase_actual == fase_batalla::perdida) {
-                sf::Text texto_resultado(alagard);
-                texto_resultado.setString("DERROTA - ENTER para volver al menu");
-                texto_resultado.setCharacterSize(22);
-                texto_resultado.setFillColor(sf::Color(220, 60, 60));
-                texto_resultado.setPosition({ 40.f, 720.f });
-                window.draw(texto_resultado);
-            }
+            // En fase perdida: el cartel y mensaje los maneja la cinematica overlay debajo
             else if (fase_actual == fase_batalla::huida) {
                 sf::Text texto_resultado(alagard);
                 texto_resultado.setString("Escapaste con vida - ENTER para continuar");
@@ -1576,6 +1761,127 @@ int iniciarjuego() {
                 }
             }
 
+            // === CARTEL CON CINEMATICA DE DERROTA ===
+            if (fase_actual == fase_batalla::perdida) {
+                float t_d = reloj_anim_batalla.getElapsedTime().asSeconds();
+
+                // Fade a negro progresivo (1.5 segundos)
+                float alpha_velo = std::min(1.f, t_d / 1.5f) * 240.f;
+                sf::RectangleShape velo_derrota({ 800.f, 800.f });
+                velo_derrota.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(alpha_velo)));
+                window.draw(velo_derrota);
+
+                // Tinte rojo de fondo (sangre) que pulsa lentamente
+                if (t_d >= 0.8f) {
+                    float prog_tinte = std::min(1.f, (t_d - 0.8f) / 1.5f);
+                    float pulso_d = (std::sin(t_d * 1.5f) + 1.f) * 0.5f;
+                    sf::RectangleShape tinte_rojo({ 800.f, 800.f });
+                    tinte_rojo.setFillColor(sf::Color(80, 0, 0, static_cast<std::uint8_t>(prog_tinte * (50.f + pulso_d * 40.f))));
+                    window.draw(tinte_rojo);
+                }
+
+                // Marco central donde aparece el cartel
+                if (t_d >= 1.2f) {
+                    float prog_marco = std::min(1.f, (t_d - 1.2f) / 0.6f);
+                    std::uint8_t alpha_m = static_cast<std::uint8_t>(prog_marco * 245.f);
+
+                    sf::RectangleShape marco_derrota({ 680.f, 320.f });
+                    marco_derrota.setOrigin({ 340.f, 160.f });
+                    marco_derrota.setPosition({ 400.f, 400.f });
+                    marco_derrota.setFillColor(sf::Color(20, 0, 0, alpha_m));
+                    marco_derrota.setOutlineColor(sf::Color(220, 40, 40, alpha_m));
+                    marco_derrota.setOutlineThickness(4.f);
+                    window.draw(marco_derrota);
+
+                    // Lineas decorativas
+                    sf::RectangleShape linea_top({ 620.f, 4.f });
+                    linea_top.setOrigin({ 310.f, 2.f });
+                    linea_top.setPosition({ 400.f, 270.f });
+                    linea_top.setFillColor(sf::Color(220, 40, 40, alpha_m));
+                    window.draw(linea_top);
+
+                    sf::RectangleShape linea_bot({ 620.f, 4.f });
+                    linea_bot.setOrigin({ 310.f, 2.f });
+                    linea_bot.setPosition({ 400.f, 530.f });
+                    linea_bot.setFillColor(sf::Color(220, 40, 40, alpha_m));
+                    window.draw(linea_bot);
+                }
+
+                // Titulo "DERROTA" (aparece despues del marco)
+                if (t_d >= 1.6f) {
+                    float prog_tit = std::min(1.f, (t_d - 1.6f) / 0.8f);
+                    std::uint8_t alpha_tit = static_cast<std::uint8_t>(prog_tit * 255.f);
+
+                    sf::Text titulo_derrota(alagard);
+                    titulo_derrota.setString("DERROTA");
+                    titulo_derrota.setCharacterSize(78);
+                    titulo_derrota.setFillColor(sf::Color(220, 40, 40, alpha_tit));
+                    titulo_derrota.setOutlineColor(sf::Color(0, 0, 0, alpha_tit));
+                    titulo_derrota.setOutlineThickness(5.f);
+                    {
+                        auto b = titulo_derrota.getLocalBounds();
+                        titulo_derrota.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    titulo_derrota.setPosition({ 400.f, 290.f });
+                    window.draw(titulo_derrota);
+                }
+
+                // Mensajes dramaticos
+                if (t_d >= 2.4f) {
+                    float prog_msg = std::min(1.f, (t_d - 2.4f) / 0.8f);
+                    std::uint8_t alpha_msg = static_cast<std::uint8_t>(prog_msg * 255.f);
+
+                    std::string linea1 = es_boss_actual
+                        ? std::string("El Guardian de la Mazmorra te ha vencido...")
+                        : std::string("La mazmorra ha reclamado tu vida...");
+
+                    sf::Text msg1(alagard);
+                    msg1.setString(linea1);
+                    msg1.setCharacterSize(22);
+                    msg1.setFillColor(sf::Color(255, 220, 220, alpha_msg));
+                    msg1.setOutlineColor(sf::Color(0, 0, 0, alpha_msg));
+                    msg1.setOutlineThickness(2.f);
+                    {
+                        auto b = msg1.getLocalBounds();
+                        msg1.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    msg1.setPosition({ 400.f, 405.f });
+                    window.draw(msg1);
+
+                    sf::Text msg2(alagard);
+                    msg2.setString("Tu aventura termina aqui.");
+                    msg2.setCharacterSize(20);
+                    msg2.setFillColor(sf::Color(200, 180, 180, alpha_msg));
+                    msg2.setOutlineColor(sf::Color(0, 0, 0, alpha_msg));
+                    msg2.setOutlineThickness(2.f);
+                    {
+                        auto b = msg2.getLocalBounds();
+                        msg2.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    msg2.setPosition({ 400.f, 445.f });
+                    window.draw(msg2);
+                }
+
+                // Hint para volver al menu (solo aparece tras la cinematica)
+                if (t_d >= duracion_derrota) {
+                    float pulso_h = (std::sin(t_d * 2.5f) + 1.f) * 0.5f;
+                    std::uint8_t alpha_h = static_cast<std::uint8_t>(150 + pulso_h * 105);
+
+                    sf::Text hint_d(alagard);
+                    hint_d.setString("Presiona ENTER para volver al menu");
+                    hint_d.setCharacterSize(20);
+                    hint_d.setFillColor(sf::Color(255, 255, 255, alpha_h));
+                    hint_d.setOutlineColor(sf::Color(0, 0, 0, alpha_h));
+                    hint_d.setOutlineThickness(2.f);
+                    {
+                        auto b = hint_d.getLocalBounds();
+                        hint_d.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    hint_d.setPosition({ 400.f, 510.f });
+                    window.draw(hint_d);
+                }
+            }
+
             window.display();
             continue;
         }
@@ -1681,6 +1987,136 @@ int iniciarjuego() {
             }
             hint3.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f + 100.0f });
             window.draw(hint3);
+        }
+        else if (estado_actual == intro_historia) {
+            // === CINEMATICA DE INICIO DEL MODO HISTORIA ===
+            // Tapamos el sprite del fondo del menu con un rectangulo negro completo
+            sf::RectangleShape negro_fondo({ 800.f, 800.f });
+            negro_fondo.setFillColor(sf::Color::Black);
+            window.draw(negro_fondo);
+
+            float t_intro = reloj_intro.getElapsedTime().asSeconds();
+            const float PI = 3.14159265f;
+
+            // --- LUZ TENUE QUE BAJA DESDE ARRIBA ---
+            // Apilamos varios circulos amarillos translucidos para simular un haz suave
+            for (int k = 0; k < 6; k++) {
+                float radio = 110.f + k * 55.f;
+                std::uint8_t alpha_luz = static_cast<std::uint8_t>(std::max(0.f, 38.f - k * 5.f));
+                sf::CircleShape halo(radio);
+                halo.setOrigin({ radio, radio });
+                halo.setPosition({ 400.f, 80.f });
+                halo.setFillColor(sf::Color(255, 230, 140, alpha_luz));
+                window.draw(halo);
+            }
+
+            // Cono de luz vertical
+            sf::ConvexShape cono;
+            cono.setPointCount(4);
+            cono.setPoint(0, { 360.f, 0.f });
+            cono.setPoint(1, { 440.f, 0.f });
+            cono.setPoint(2, { 560.f, 800.f });
+            cono.setPoint(3, { 240.f, 800.f });
+            cono.setFillColor(sf::Color(255, 230, 140, 22));
+            window.draw(cono);
+
+            // --- SPRITE DEL PERSONAJE CAYENDO ---
+            // Cae con curva cuadratica desde Y=-80 hasta Y=420 durante los primeros 2 segundos
+            float t_caida = std::min(1.f, t_intro / 2.0f);
+            float t_easing = t_caida * t_caida; // aceleracion (gravedad)
+            float pos_y_pj = -80.f + t_easing * 500.f;
+            // Rotacion mientras cae para dar sensacion de descontrol
+            float rotacion_pj = 0.f;
+            if (t_intro < 2.0f) {
+                rotacion_pj = std::sin(t_intro * 6.f) * 25.f;
+            }
+            else {
+                // Rebote pequeno al tocar el suelo
+                float t_rebote = t_intro - 2.0f;
+                if (t_rebote < 0.4f) {
+                    pos_y_pj += std::sin(t_rebote * PI / 0.4f) * -18.f;
+                }
+            }
+
+            sf::Sprite spr_pj_intro(tex_prota);
+            {
+                auto tam_pj = tex_prota.getSize();
+                if (tam_pj.x > 0) {
+                    float escala = 200.f / static_cast<float>(tam_pj.x);
+                    spr_pj_intro.setScale({ escala, escala });
+                    spr_pj_intro.setOrigin({ static_cast<float>(tam_pj.x) / 2.f,
+                                             static_cast<float>(tam_pj.y) / 2.f });
+                }
+            }
+            spr_pj_intro.setPosition({ 400.f, pos_y_pj });
+            spr_pj_intro.setRotation(sf::degrees(rotacion_pj));
+            window.draw(spr_pj_intro);
+
+            // Sombra al pie del personaje cuando ya cayo
+            if (t_intro >= 1.6f) {
+                float prog_sombra = std::min(1.f, (t_intro - 1.6f) / 0.6f);
+                sf::CircleShape sombra(80.f);
+                sombra.setScale({ 1.f, 0.25f });
+                sombra.setOrigin({ 80.f, 80.f });
+                sombra.setPosition({ 400.f, 540.f });
+                sombra.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(prog_sombra * 130)));
+                window.draw(sombra);
+            }
+
+            // --- TEXTO PRINCIPAL ---
+            // Aparece despues de que el personaje cae (a partir de t = 2.4s)
+            if (t_intro >= 2.4f) {
+                float prog_t = std::min(1.f, (t_intro - 2.4f) / 1.0f);
+                std::uint8_t alpha_t = static_cast<std::uint8_t>(prog_t * 255.f);
+
+                sf::Text texto_intro(alagard);
+                texto_intro.setString("Despiertas aturdido y sin conocimiento");
+                texto_intro.setCharacterSize(26);
+                texto_intro.setFillColor(sf::Color(230, 230, 230, alpha_t));
+                texto_intro.setOutlineColor(sf::Color(0, 0, 0, alpha_t));
+                texto_intro.setOutlineThickness(2.f);
+                {
+                    auto b = texto_intro.getLocalBounds();
+                    texto_intro.setOrigin({ b.size.x / 2.f, 0.f });
+                }
+                texto_intro.setPosition({ 400.f, 600.f });
+                window.draw(texto_intro);
+
+                sf::Text texto_intro2(alagard);
+                texto_intro2.setString("de donde estas...");
+                texto_intro2.setCharacterSize(26);
+                texto_intro2.setFillColor(sf::Color(230, 230, 230, alpha_t));
+                texto_intro2.setOutlineColor(sf::Color(0, 0, 0, alpha_t));
+                texto_intro2.setOutlineThickness(2.f);
+                {
+                    auto b = texto_intro2.getLocalBounds();
+                    texto_intro2.setOrigin({ b.size.x / 2.f, 0.f });
+                }
+                texto_intro2.setPosition({ 400.f, 640.f });
+                window.draw(texto_intro2);
+            }
+
+            // Mensaje para comenzar el juego (aparece despues con parpadeo)
+            if (t_intro >= 4.0f) {
+                float pulso_e = (std::sin(t_intro * 2.5f) + 1.f) * 0.5f;
+                std::uint8_t alpha_e = static_cast<std::uint8_t>(140 + pulso_e * 115);
+
+                sf::Text texto_press(alagard);
+                texto_press.setString("Presiona E para comenzar");
+                texto_press.setCharacterSize(28);
+                texto_press.setFillColor(sf::Color(255, 215, 0, alpha_e));
+                texto_press.setOutlineColor(sf::Color(0, 0, 0, alpha_e));
+                texto_press.setOutlineThickness(2.f);
+                {
+                    auto b = texto_press.getLocalBounds();
+                    texto_press.setOrigin({ b.size.x / 2.f, 0.f });
+                }
+                texto_press.setPosition({ 400.f, 720.f });
+                window.draw(texto_press);
+            }
+
+            window.display();
+            continue;
         }
         else {
             if (estado_actual == jugando || estado_actual == en_tienda || estado_actual == en_inventario) {
