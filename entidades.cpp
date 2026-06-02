@@ -47,10 +47,10 @@ void abrircofre() {
 // Inicializa las stats del enemigo segun si es jefe o enemigo comun
 void inicializarenemigo(enemigo& en, bool es_boss) {
 	if (es_boss) {
-		en.nombre = "Boss";
-		en.vida = 150;
-		en.ataque = 18;
-		en.defensa = 8;
+		en.nombre = "Guardian de la Mazmorra";
+		en.vida = 200;
+		en.ataque = 26;
+		en.defensa = 10;
 	}
 	else {
 		en.nombre = "Enemigo";

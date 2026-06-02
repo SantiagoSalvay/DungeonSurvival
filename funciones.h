@@ -10,7 +10,9 @@ void inicializarmercader(mercader& vendedor);
 void inicializarenemigo(enemigo& en, bool es_boss);
 
 void moverpj(personaje& pj, char direccion, string matriz_fondo[max_filas][max_columnas], string matriz_entidades[max_filas][max_columnas]);
-char interactuar(personaje& pj, string matriz_entidades[max_filas][max_columnas], string matriz_fondo[max_filas][max_columnas]);
+char interactuar(personaje& pj, string matriz_entidades[max_filas][max_columnas], string matriz_fondo[max_filas][max_columnas], cofre& cofre_resultado);
+
+std::string formatearFecha(long long timestamp);
 
 void completar(string v[], int tam, int pos, string c[], int& k);
 int fusionar(string a[], int n, string b[], int m, string c[]);

@@ -37,7 +37,7 @@ void moverpj(personaje& pj, char direccion, string matriz_fondo[max_filas][max_c
 }
 
 // --- LOGICA DE INTERACCION EN LAS 4 DIRECCIONES ---
-char interactuar(personaje& pj, string matriz_entidades[max_filas][max_columnas], string matriz_fondo[max_filas][max_columnas]) {
+char interactuar(personaje& pj, string matriz_entidades[max_filas][max_columnas], string matriz_fondo[max_filas][max_columnas], cofre& cofre_resultado) {
 
 	int pj_x = pj.posicion_x;
 	int pj_y = pj.posicion_y;
@@ -107,6 +107,13 @@ char interactuar(personaje& pj, string matriz_entidades[max_filas][max_columnas]
 			pj.inventario[i] = inventario_temporal[i];
 		}
 		pj.cant_items = nueva_cantidad;
+
+		// Devolvemos las recompensas para que el menu pueda mostrar el cartel
+		cofre_resultado.oro = cofre_local.oro;
+		cofre_resultado.cant_loot = cofre_local.cant_loot;
+		for (int i = 0; i < cofre_local.cant_loot; i++) {
+			cofre_resultado.loot[i] = cofre_local.loot[i];
+		}
 
 		matriz_entidades[det_y][det_x] = ""; // Borramos el cofre del mapa
 		return 'C';
@@ -404,4 +411,19 @@ bool eliminarPartidaPorIndice(int indice) {
 		escribirregistro(archivo, registro, registro.entidades);
 	}
 	return true;
+}
+
+// Convierte un timestamp epoch en una cadena legible "dd/mm/aaaa hh:mm"
+std::string formatearFecha(long long timestamp) {
+	if (timestamp <= 0) return "Sin fecha";
+	std::time_t t = static_cast<std::time_t>(timestamp);
+	std::tm tm_local{};
+#ifdef _WIN32
+	localtime_s(&tm_local, &t);
+#else
+	tm_local = *std::localtime(&t);
+#endif
+	char buffer[32];
+	std::strftime(buffer, sizeof(buffer), "%d/%m/%Y %H:%M", &tm_local);
+	return std::string(buffer);
 }

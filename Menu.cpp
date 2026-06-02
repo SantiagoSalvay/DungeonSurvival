@@ -14,7 +14,7 @@
 
 enum estado_pantalla { menu_principal, jugando, cargar, controles, reglas, creditos, en_tienda, en_batalla, en_inventario, confirmar_guardado, aviso_guardado };
 
-enum class fase_batalla { espera_input, anim_pj_ataca, anim_enemigo_ataca, anim_pocion, ganada, perdida, huida };
+enum class fase_batalla { cinematica_boss, espera_input, anim_pj_ataca, anim_enemigo_ataca, anim_pocion, ganada, victoria_final, perdida, huida };
 
 int iniciarjuego() {
     sf::RenderWindow window(sf::VideoMode({ 800, 800 }), "Dungeon Survival");
@@ -183,6 +183,11 @@ int iniciarjuego() {
     bool en_modo_compra = true;
     bool aviso_puerta = false;
 
+    // Aviso del cofre (recompensas aleatorias)
+    bool aviso_cofre = false;
+    cofre cofre_resultado;
+    std::string mensaje_cofre = "";
+
     bool en_pausa = false;
     int item_pausa = 0;
     std::vector<sf::Text> opciones_pausa;
@@ -221,23 +226,40 @@ int iniciarjuego() {
     fondo_confirmacion.setOutlineColor(sf::Color::White);
     fondo_confirmacion.setOutlineThickness(2.0f);
 
-    sf::RectangleShape fondo_aviso_guardado({ 520.0f, 160.0f });
+    sf::RectangleShape fondo_aviso_guardado({ 540.0f, 200.0f });
+    fondo_aviso_guardado.setOrigin({ 270.0f, 100.0f });
+    fondo_aviso_guardado.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f });
     fondo_aviso_guardado.setFillColor(sf::Color(0, 0, 0, 230));
-    fondo_aviso_guardado.setPosition({ 140.0f, 320.0f });
-    fondo_aviso_guardado.setOutlineColor(sf::Color::White);
-    fondo_aviso_guardado.setOutlineThickness(2.0f);
+    fondo_aviso_guardado.setOutlineColor(sf::Color(60, 200, 60));
+    fondo_aviso_guardado.setOutlineThickness(3.0f);
+
+    // Linea decorativa superior dentro del recuadro
+    sf::RectangleShape linea_deco_guardado({ 460.0f, 3.0f });
+    linea_deco_guardado.setOrigin({ 230.0f, 1.5f });
+    linea_deco_guardado.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f - 50.0f });
+    linea_deco_guardado.setFillColor(sf::Color(60, 200, 60));
 
     sf::Text texto_guardado_titulo(alagard);
     texto_guardado_titulo.setString("Partida guardada correctamente");
     texto_guardado_titulo.setCharacterSize(28);
     texto_guardado_titulo.setFillColor(sf::Color::Green);
-    texto_guardado_titulo.setPosition({ 260.0f, 350.0f });
+    texto_guardado_titulo.setOutlineColor(sf::Color::Black);
+    texto_guardado_titulo.setOutlineThickness(2.0f);
+    {
+        auto bounds = texto_guardado_titulo.getLocalBounds();
+        texto_guardado_titulo.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+    }
+    texto_guardado_titulo.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f - 30.0f });
 
     sf::Text texto_guardado_subtitulo(alagard);
-    texto_guardado_subtitulo.setString("ENTER para continuar");
-    texto_guardado_subtitulo.setCharacterSize(18);
+    texto_guardado_subtitulo.setString("Presiona ENTER para continuar");
+    texto_guardado_subtitulo.setCharacterSize(20);
     texto_guardado_subtitulo.setFillColor(sf::Color(200, 200, 200));
-    texto_guardado_subtitulo.setPosition({ 250.0f, 390.0f });
+    {
+        auto bounds = texto_guardado_subtitulo.getLocalBounds();
+        texto_guardado_subtitulo.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+    }
+    texto_guardado_subtitulo.setPosition({ window.getSize().x / 2.0f, window.getSize().y / 2.0f + 30.0f });
 
     sf::Text texto_confirmacion_titulo(alagard);
     texto_confirmacion_titulo.setString("Quieres guardar la partida?");
@@ -299,17 +321,20 @@ int iniciarjuego() {
                             item_carga = 0;
                             for (int i = 0; i < static_cast<int>(partidas_guardadas.size()); i++) {
                                 const auto& registro = partidas_guardadas[i];
+                                std::string nombre_mostrado = registro.pj.name.empty() ? std::string("Paolo") : registro.pj.name;
                                 std::ostringstream linea;
-                                linea << (i + 1) << ") " << registro.pj.name
+                                linea << (i + 1) << ") " << nombre_mostrado
                                     << " - Nivel " << registro.pj.nivel_actual
-                                    << " - Oro " << registro.pj.oro;
+                                    << " - Oro " << registro.pj.oro << "\n"
+                                    << "      " << formatearFecha(registro.ultimo_guardado);
                                 sf::Text texto(alagard);
                                 texto.setString(linea.str());
-                                texto.setCharacterSize(24);
+                                texto.setCharacterSize(22);
                                 texto.setFillColor(i == 0 ? sf::Color::Red : sf::Color::White);
+                                texto.setLineSpacing(1.2f);
                                 auto bounds = texto.getLocalBounds();
                                 texto.setOrigin({ bounds.size.x / 2.0f, 0.0f });
-                                texto.setPosition({ window.getSize().x / 2.0f, 180.0f + (i * 35.0f) });
+                                texto.setPosition({ window.getSize().x / 2.0f, 160.0f + (i * 70.0f) });
                                 opciones_carga.push_back(texto);
                             }
                             estado_actual = cargar;
@@ -461,21 +486,29 @@ int iniciarjuego() {
                         else if (key_pressed->code == sf::Keyboard::Key::W) {
                             moverpj(paolo, 'W', matriz_fondo, matriz_entidades);
                             aviso_puerta = false;
+                            aviso_cofre = false;
                         }
                         else if (key_pressed->code == sf::Keyboard::Key::S) {
                             moverpj(paolo, 'S', matriz_fondo, matriz_entidades);
                             aviso_puerta = false;
+                            aviso_cofre = false;
                         }
                         else if (key_pressed->code == sf::Keyboard::Key::A) {
                             moverpj(paolo, 'A', matriz_fondo, matriz_entidades);
                             aviso_puerta = false;
+                            aviso_cofre = false;
                         }
                         else if (key_pressed->code == sf::Keyboard::Key::D) {
                             moverpj(paolo, 'D', matriz_fondo, matriz_entidades);
                             aviso_puerta = false;
+                            aviso_cofre = false;
                         }
                         else if (key_pressed->code == sf::Keyboard::Key::E) {
-                            char resultado = interactuar(paolo, matriz_entidades, matriz_fondo);
+                            // Limpiamos el resultado para no arrastrar datos viejos
+                            cofre_resultado.oro = 0;
+                            cofre_resultado.cant_loot = 0;
+
+                            char resultado = interactuar(paolo, matriz_entidades, matriz_fondo, cofre_resultado);
 
                             if (resultado == 'S') {
                                 paolo.nivel_actual = paolo.nivel_actual + 1;
@@ -483,9 +516,24 @@ int iniciarjuego() {
                                 paolo.posicion_x = 1;
                                 paolo.posicion_y = 1;
                                 aviso_puerta = false;
+                                aviso_cofre = false;
                             }
                             else if (resultado == 'L') {
                                 aviso_puerta = true;
+                                aviso_cofre = false;
+                            }
+                            else if (resultado == 'C') {
+                                // Armamos el cartel con las recompensas aleatorias del cofre
+                                std::ostringstream oss;
+                                oss << "Encontraste un cofre!\n\n";
+                                oss << "  +" << cofre_resultado.oro << " de oro\n\n";
+                                oss << "  Loot obtenido:\n";
+                                for (int i = 0; i < cofre_resultado.cant_loot; i++) {
+                                    oss << "    - " << cofre_resultado.loot[i] << "\n";
+                                }
+                                mensaje_cofre = oss.str();
+                                aviso_cofre = true;
+                                aviso_puerta = false;
                             }
                             else if (resultado == 'M') {
                                 estado_actual = en_tienda;
@@ -493,6 +541,7 @@ int iniciarjuego() {
                                 cursor_inventario = 0;
                                 en_modo_compra = true;
                                 aviso_puerta = false;
+                                aviso_cofre = false;
                             }
                             else if (resultado == 'E' || resultado == 'B') {
                                 // Busca al enemigo adyacente (mismo orden que la funcion interactuar)
@@ -516,14 +565,19 @@ int iniciarjuego() {
                                 }
                                 inicializarenemigo(enemigo_actual, es_boss_actual);
                                 enemigo_vida_max = enemigo_actual.vida;
-                                fase_actual = fase_batalla::espera_input;
                                 defendiendo = false;
-                                mensaje_batalla = es_boss_actual
-                                    ? "Un Boss aparece! Que haces?"
-                                    : "Un enemigo se cruza en tu camino!";
+                                if (es_boss_actual) {
+                                    fase_actual = fase_batalla::cinematica_boss;
+                                    mensaje_batalla = "";
+                                }
+                                else {
+                                    fase_actual = fase_batalla::espera_input;
+                                    mensaje_batalla = "Un enemigo se cruza en tu camino!";
+                                }
                                 reloj_anim_batalla.restart();
                                 estado_actual = en_batalla;
                                 aviso_puerta = false;
+                                aviso_cofre = false;
                             }
                         }
                     }
@@ -634,12 +688,26 @@ int iniciarjuego() {
                             estado_actual = jugando;
                         }
                     }
+                    else if (fase_actual == fase_batalla::victoria_final) {
+                        // Tras vencer al boss, ENTER lleva al menu principal con la partida terminada
+                        if (key_pressed->code == sf::Keyboard::Key::Enter) {
+                            estado_actual = menu_principal;
+                        }
+                    }
                     else if (fase_actual == fase_batalla::perdida) {
                         if (key_pressed->code == sf::Keyboard::Key::Enter) {
                             // Resetea al protagonista y vuelve al menu
                             protagonista(paolo);
                             cargarnivel(paolo.nivel_actual, matriz_fondo, matriz_entidades);
                             estado_actual = menu_principal;
+                        }
+                    }
+                    else if (fase_actual == fase_batalla::cinematica_boss) {
+                        // Permite saltear la cinematica con ENTER o ESC
+                        if (key_pressed->code == sf::Keyboard::Key::Enter || key_pressed->code == sf::Keyboard::Key::Escape) {
+                            fase_actual = fase_batalla::espera_input;
+                            mensaje_batalla = "El Guardian de la Mazmorra te desafia! Que haces?";
+                            reloj_anim_batalla.restart();
                         }
                     }
                     // Solo aceptamos input cuando es el turno del jugador
@@ -711,10 +779,10 @@ int iniciarjuego() {
             float t_anim = reloj_anim_batalla.getElapsedTime().asSeconds();
 
             if (fase_actual == fase_batalla::anim_pj_ataca && t_anim >= duracion_anim) {
-                // Calculo de dano al enemigo
-                int dano_base = paolo.ataque + (std::rand() % 5);
+                // El jugador hace ~150% del dano base (ventaja clara contra enemigos)
+                int dano_base = (paolo.ataque * 3) / 2 + (std::rand() % 6);
                 int dano_real = dano_base - enemigo_actual.defensa;
-                if (dano_real < 1) dano_real = 1;
+                if (dano_real < 2) dano_real = 2;
                 enemigo_actual.vida -= dano_real;
 
                 if (enemigo_actual.vida <= 0) {
@@ -727,9 +795,16 @@ int iniciarjuego() {
                         enemigo_pos_y < max_filas && enemigo_pos_x < max_columnas) {
                         matriz_entidades[enemigo_pos_y][enemigo_pos_x] = "";
                     }
-                    mensaje_batalla = "Victoria! Causaste " + std::to_string(dano_real) +
-                        " de dano final. Ganaste " + std::to_string(recompensa) + " de oro. (ENTER)";
-                    fase_actual = fase_batalla::ganada;
+                    if (es_boss_actual) {
+                        mensaje_batalla = "Ganaste " + std::to_string(recompensa) + " de oro!";
+                        fase_actual = fase_batalla::victoria_final;
+                        reloj_anim_batalla.restart();
+                    }
+                    else {
+                        mensaje_batalla = "Victoria! Causaste " + std::to_string(dano_real) +
+                            " de dano final. Ganaste " + std::to_string(recompensa) + " de oro. (ENTER)";
+                        fase_actual = fase_batalla::ganada;
+                    }
                     // Guardamos automaticamente la partida tras la victoria
                     guardarPartida(paolo, matriz_entidades);
                 }
@@ -740,8 +815,9 @@ int iniciarjuego() {
                 }
             }
             else if (fase_actual == fase_batalla::anim_enemigo_ataca && t_anim >= duracion_anim) {
-                // Calculo de dano al jugador (la armadura suma a HP, ademas reduce un poco el dano recibido)
-                int dano_base = enemigo_actual.ataque + (std::rand() % 4);
+                // El enemigo comun pega al 70% de su ataque base; el boss al 95% (mas peligroso pero el jugador sigue arriba)
+                int multiplicador = es_boss_actual ? 95 : 70;
+                int dano_base = (enemigo_actual.ataque * multiplicador) / 100 + (std::rand() % (es_boss_actual ? 5 : 3));
                 int dano_real = dano_base - (paolo.defensa / 10);
                 if (defendiendo) {
                     dano_real = dano_real / 2;
@@ -773,6 +849,109 @@ int iniciarjuego() {
         if (estado_actual == en_batalla) {
             // === RENDER DE LA PANTALLA DE BATALLA ===
             window.draw(sprite_fondo_pelea);
+
+            // === CINEMATICA EPICA AL ENFRENTAR AL BOSS ===
+            if (fase_actual == fase_batalla::cinematica_boss) {
+                const float PI = 3.14159265f;
+                float t = reloj_anim_batalla.getElapsedTime().asSeconds();
+                const float dur_total = 6.5f;
+
+                // Velo negro general que se va aclarando
+                {
+                    float alpha_velo = 255.f;
+                    if (t < 0.8f) alpha_velo = 255.f - (t / 0.8f) * 100.f;
+                    else alpha_velo = 155.f - std::min(1.f, (t - 0.8f) / 1.2f) * 95.f;
+                    if (alpha_velo < 60.f) alpha_velo = 60.f;
+                    sf::RectangleShape velo({ 800.f, 800.f });
+                    velo.setFillColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(alpha_velo)));
+                    window.draw(velo);
+                }
+
+                // El sprite del boss aparece desde la derecha mientras tiembla
+                {
+                    sf::Sprite spr_boss(tex_boss);
+                    auto tam = tex_boss.getSize();
+                    float escala_extra = 1.f;
+                    if (t > 2.0f) escala_extra = 1.f + std::min(1.f, (t - 2.0f) / 2.5f) * 0.6f;
+                    if (tam.x > 0) {
+                        float escala = (260.f / static_cast<float>(tam.x)) * escala_extra;
+                        spr_boss.setScale({ escala, escala });
+                    }
+
+                    float prog_entrada = std::min(1.f, t / 1.6f);
+                    float prog_eased = 1.f - (1.f - prog_entrada) * (1.f - prog_entrada);
+                    float pos_x_objetivo = 400.f - 130.f;
+                    float pos_x_boss = 820.f + (pos_x_objetivo - 820.f) * prog_eased;
+                    float pos_y_boss = 250.f;
+
+                    // Temblor al estar instalado
+                    if (t > 1.7f) {
+                        pos_x_boss += std::sin(t * 28.f) * 4.f;
+                        pos_y_boss += std::cos(t * 24.f) * 3.f;
+                    }
+                    spr_boss.setPosition({ pos_x_boss, pos_y_boss });
+                    window.draw(spr_boss);
+                }
+
+                // Destello rojo cuando el boss se planta (a partir de t=2s)
+                if (t >= 2.0f && t < 3.0f) {
+                    float prog_flash = (t - 2.0f) / 1.0f;
+                    float alpha_flash = std::sin(prog_flash * PI) * 140.f;
+                    if (alpha_flash > 0.f) {
+                        sf::RectangleShape flash({ 800.f, 800.f });
+                        flash.setFillColor(sf::Color(180, 0, 0, static_cast<std::uint8_t>(alpha_flash)));
+                        window.draw(flash);
+                    }
+                }
+
+                // Texto dramatico que aparece en cascada
+                auto dibujar_texto_dram = [&](const std::string& s, float aparece, float desaparece, float y, unsigned size, sf::Color color) {
+                    if (t < aparece || t > desaparece) return;
+                    float local = t - aparece;
+                    float dur = desaparece - aparece;
+                    float alpha = 255.f;
+                    if (local < 0.25f) alpha = (local / 0.25f) * 255.f;
+                    else if (local > dur - 0.4f) alpha = ((dur - local) / 0.4f) * 255.f;
+                    if (alpha < 0.f) alpha = 0.f;
+                    if (alpha > 255.f) alpha = 255.f;
+                    sf::Text txt(alagard);
+                    txt.setString(s);
+                    txt.setCharacterSize(size);
+                    sf::Color c = color;
+                    c.a = static_cast<std::uint8_t>(alpha);
+                    txt.setFillColor(c);
+                    txt.setOutlineColor(sf::Color(0, 0, 0, static_cast<std::uint8_t>(alpha)));
+                    txt.setOutlineThickness(3.f);
+                    auto b = txt.getLocalBounds();
+                    txt.setOrigin({ b.size.x / 2.f, 0.f });
+                    txt.setPosition({ 400.f, y });
+                    window.draw(txt);
+                };
+
+                dibujar_texto_dram("Una presencia oscura se acerca...", 0.4f, 2.0f, 90.f, 24, sf::Color(220, 220, 220));
+                dibujar_texto_dram("EL GUARDIAN DESPIERTA", 2.1f, 4.2f, 80.f, 44, sf::Color(255, 80, 80));
+                dibujar_texto_dram("Su mirada se clava en ti...", 3.0f, 5.0f, 150.f, 22, sf::Color(220, 220, 220));
+                dibujar_texto_dram("BATALLA FINAL", 4.5f, 6.4f, 580.f, 56, sf::Color(255, 215, 0));
+                dibujar_texto_dram("Que el destino decida...", 5.0f, 6.4f, 650.f, 22, sf::Color(220, 220, 220));
+
+                // Hint para saltear
+                sf::Text saltear(alagard);
+                saltear.setString("(ENTER para saltear)");
+                saltear.setCharacterSize(14);
+                saltear.setFillColor(sf::Color(180, 180, 180, 200));
+                saltear.setPosition({ 620.f, 770.f });
+                window.draw(saltear);
+
+                // Al finalizar el tiempo, pasa al combate
+                if (t >= dur_total) {
+                    fase_actual = fase_batalla::espera_input;
+                    mensaje_batalla = "El Guardian de la Mazmorra te desafia! Que haces?";
+                    reloj_anim_batalla.restart();
+                }
+
+                window.display();
+                continue;
+            }
 
             // Calculo del desplazamiento de la animacion (curva senoidal)
             float t_norm = reloj_anim_batalla.getElapsedTime().asSeconds() / duracion_anim;
@@ -916,6 +1095,136 @@ int iniciarjuego() {
                 window.draw(texto_resultado);
             }
 
+            // === CARTEL GRANDE DE VICTORIA FINAL (TRAS VENCER AL BOSS) ===
+            if (fase_actual == fase_batalla::victoria_final) {
+                const float PI = 3.14159265f;
+                float t_v = reloj_anim_batalla.getElapsedTime().asSeconds();
+
+                // Velo dorado oscuro para resaltar el cartel
+                sf::RectangleShape velo_victoria({ 800.f, 800.f });
+                velo_victoria.setFillColor(sf::Color(0, 0, 0, 200));
+                window.draw(velo_victoria);
+
+                // Marco grande centrado con borde dorado pulsante
+                float pulso = (std::sin(t_v * 3.0f) + 1.f) * 0.5f;
+                std::uint8_t intensidad = static_cast<std::uint8_t>(180 + pulso * 75);
+
+                sf::RectangleShape marco_victoria({ 700.f, 460.f });
+                marco_victoria.setOrigin({ 350.f, 230.f });
+                marco_victoria.setPosition({ 400.f, 400.f });
+                marco_victoria.setFillColor(sf::Color(20, 15, 5, 240));
+                marco_victoria.setOutlineColor(sf::Color(intensidad, static_cast<std::uint8_t>(intensidad * 0.78f), 30));
+                marco_victoria.setOutlineThickness(5.f);
+                window.draw(marco_victoria);
+
+                // Decoracion superior
+                sf::RectangleShape barra_top({ 660.f, 6.f });
+                barra_top.setOrigin({ 330.f, 3.f });
+                barra_top.setPosition({ 400.f, 215.f });
+                barra_top.setFillColor(sf::Color(212, 175, 55));
+                window.draw(barra_top);
+
+                sf::RectangleShape barra_bot({ 660.f, 6.f });
+                barra_bot.setOrigin({ 330.f, 3.f });
+                barra_bot.setPosition({ 400.f, 585.f });
+                barra_bot.setFillColor(sf::Color(212, 175, 55));
+                window.draw(barra_bot);
+
+                // Titulo "VICTORIA!" con efecto de aparicion
+                float prog_titulo = std::min(1.f, t_v / 0.6f);
+                std::uint8_t alpha_t = static_cast<std::uint8_t>(prog_titulo * 255.f);
+
+                sf::Text titulo_victoria(alagard);
+                titulo_victoria.setString("VICTORIA");
+                titulo_victoria.setCharacterSize(82);
+                titulo_victoria.setFillColor(sf::Color(255, 215, 0, alpha_t));
+                titulo_victoria.setOutlineColor(sf::Color(0, 0, 0, alpha_t));
+                titulo_victoria.setOutlineThickness(5.f);
+                {
+                    auto b = titulo_victoria.getLocalBounds();
+                    titulo_victoria.setOrigin({ b.size.x / 2.f, 0.f });
+                }
+                titulo_victoria.setPosition({ 400.f, 240.f });
+                window.draw(titulo_victoria);
+
+                // Mensaje principal de felicitacion
+                if (t_v >= 0.6f) {
+                    float prog_msg = std::min(1.f, (t_v - 0.6f) / 0.8f);
+                    std::uint8_t alpha_m = static_cast<std::uint8_t>(prog_msg * 255.f);
+
+                    sf::Text felicitacion(alagard);
+                    felicitacion.setString("Lograste ganarle al Guardian de la");
+                    felicitacion.setCharacterSize(26);
+                    felicitacion.setFillColor(sf::Color(255, 255, 255, alpha_m));
+                    felicitacion.setOutlineColor(sf::Color(0, 0, 0, alpha_m));
+                    felicitacion.setOutlineThickness(2.f);
+                    {
+                        auto b = felicitacion.getLocalBounds();
+                        felicitacion.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    felicitacion.setPosition({ 400.f, 360.f });
+                    window.draw(felicitacion);
+
+                    sf::Text felicitacion2(alagard);
+                    felicitacion2.setString("Mazmorra y saliste con vida exitosamente!");
+                    felicitacion2.setCharacterSize(26);
+                    felicitacion2.setFillColor(sf::Color(255, 255, 255, alpha_m));
+                    felicitacion2.setOutlineColor(sf::Color(0, 0, 0, alpha_m));
+                    felicitacion2.setOutlineThickness(2.f);
+                    {
+                        auto b = felicitacion2.getLocalBounds();
+                        felicitacion2.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    felicitacion2.setPosition({ 400.f, 400.f });
+                    window.draw(felicitacion2);
+                }
+
+                // Resumen de recompensas (aparece despues del mensaje)
+                if (t_v >= 1.4f) {
+                    float prog_rec = std::min(1.f, (t_v - 1.4f) / 0.6f);
+                    std::uint8_t alpha_r = static_cast<std::uint8_t>(prog_rec * 255.f);
+
+                    sf::Text texto_recompensa(alagard);
+                    texto_recompensa.setString(mensaje_batalla);
+                    texto_recompensa.setCharacterSize(24);
+                    texto_recompensa.setFillColor(sf::Color(255, 215, 0, alpha_r));
+                    texto_recompensa.setOutlineColor(sf::Color(0, 0, 0, alpha_r));
+                    texto_recompensa.setOutlineThickness(2.f);
+                    {
+                        auto b = texto_recompensa.getLocalBounds();
+                        texto_recompensa.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    texto_recompensa.setPosition({ 400.f, 470.f });
+                    window.draw(texto_recompensa);
+
+                    sf::Text subtitulo(alagard);
+                    subtitulo.setString("Un verdadero heroe de la mazmorra");
+                    subtitulo.setCharacterSize(20);
+                    subtitulo.setFillColor(sf::Color(200, 200, 200, alpha_r));
+                    {
+                        auto b = subtitulo.getLocalBounds();
+                        subtitulo.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    subtitulo.setPosition({ 400.f, 510.f });
+                    window.draw(subtitulo);
+                }
+
+                // Hint final para volver al menu
+                if (t_v >= 2.0f) {
+                    float alpha_hint = (std::sin(t_v * 2.5f) + 1.f) * 0.5f * 255.f;
+                    sf::Text hint(alagard);
+                    hint.setString("Presiona ENTER para volver al menu");
+                    hint.setCharacterSize(20);
+                    hint.setFillColor(sf::Color(255, 255, 255, static_cast<std::uint8_t>(alpha_hint)));
+                    {
+                        auto b = hint.getLocalBounds();
+                        hint.setOrigin({ b.size.x / 2.f, 0.f });
+                    }
+                    hint.setPosition({ 400.f, 560.f });
+                    window.draw(hint);
+                }
+            }
+
             window.display();
             continue;
         }
@@ -964,6 +1273,48 @@ int iniciarjuego() {
                     texto_aviso.setPosition({ 100.0f, 62.0f });
                     texto_aviso.setFillColor(sf::Color::Red);
                     window.draw(texto_aviso);
+                }
+
+                if (aviso_cofre) {
+                    // Cartel central con las recompensas aleatorias del cofre
+                    sf::RectangleShape fondo_cofre({ 460.0f, 260.0f });
+                    fondo_cofre.setPosition({ 170.0f, 250.0f });
+                    fondo_cofre.setFillColor(sf::Color(20, 20, 20, 230));
+                    fondo_cofre.setOutlineColor(sf::Color(212, 175, 55));
+                    fondo_cofre.setOutlineThickness(3.0f);
+                    window.draw(fondo_cofre);
+
+                    sf::Text titulo_cofre(alagard);
+                    titulo_cofre.setString("=== RECOMPENSAS ===");
+                    titulo_cofre.setCharacterSize(26);
+                    titulo_cofre.setFillColor(sf::Color(212, 175, 55));
+                    titulo_cofre.setOutlineColor(sf::Color::Black);
+                    titulo_cofre.setOutlineThickness(2.0f);
+                    {
+                        auto bounds = titulo_cofre.getLocalBounds();
+                        titulo_cofre.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+                    }
+                    titulo_cofre.setPosition({ window.getSize().x / 2.0f, 265.0f });
+                    window.draw(titulo_cofre);
+
+                    sf::Text texto_cofre(alagard);
+                    texto_cofre.setString(mensaje_cofre);
+                    texto_cofre.setCharacterSize(20);
+                    texto_cofre.setFillColor(sf::Color::White);
+                    texto_cofre.setLineSpacing(1.1f);
+                    texto_cofre.setPosition({ 200.0f, 305.0f });
+                    window.draw(texto_cofre);
+
+                    sf::Text texto_continuar(alagard);
+                    texto_continuar.setString("(Movete con WASD para cerrar)");
+                    texto_continuar.setCharacterSize(16);
+                    texto_continuar.setFillColor(sf::Color(200, 200, 200));
+                    {
+                        auto bounds = texto_continuar.getLocalBounds();
+                        texto_continuar.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+                    }
+                    texto_continuar.setPosition({ window.getSize().x / 2.0f, 480.0f });
+                    window.draw(texto_continuar);
                 }
 
                 if (en_pausa) {
@@ -1024,6 +1375,7 @@ int iniciarjuego() {
             }
             else if (estado_actual == aviso_guardado) {
                 window.draw(fondo_aviso_guardado);
+                window.draw(linea_deco_guardado);
                 window.draw(texto_guardado_titulo);
                 window.draw(texto_guardado_subtitulo);
             }
