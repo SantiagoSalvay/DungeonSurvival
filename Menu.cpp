@@ -469,10 +469,25 @@ int iniciarjuego() {
                     }
                     else if (key_pressed->code == sf::Keyboard::Key::Enter) {
                         if (item_carga >= 0 && item_carga < static_cast<int>(partidas_guardadas.size())) {
+                            // Cargamos DIRECTO desde la lista ya ordenada por fecha.
+                            // (Antes se usaba cargarPartidaPorIndice con el indice ordenado,
+                            //  pero ese indice no coincide con el orden fisico del archivo)
                             const registro_partida& partida_seleccionada = partidas_guardadas[item_carga];
-                            cargarPartidaPorIndice(paolo, item_carga, matriz_entidades);
+                            paolo = partida_seleccionada.pj;
+                            for (int i = 0; i < max_filas; i++) {
+                                for (int j = 0; j < max_columnas; j++) {
+                                    matriz_entidades[i][j] = partida_seleccionada.entidades[i][j];
+                                }
+                            }
+                            // Si la partida guardada tiene nombre vacio, le ponemos uno por defecto
+                            // (asi al volver a guardar no se mezcla con otras partidas sin nombre)
+                            if (paolo.name.empty()) {
+                                paolo.name = "Paolo";
+                            }
+                            // Reconstruimos el mapa visual del nivel guardado
                             string matriz_entidades_base[max_filas][max_columnas];
                             cargarnivel(paolo.nivel_actual, matriz_fondo, matriz_entidades_base);
+                            // Aseguramos que la "P" del jugador este en la posicion exacta guardada
                             for (int i = 0; i < max_filas; i++) {
                                 for (int j = 0; j < max_columnas; j++) {
                                     if (matriz_entidades[i][j] == "P") {
@@ -956,14 +971,16 @@ int iniciarjuego() {
                             mensaje_batalla = "Ganaste " + std::to_string(recompensa) + " de oro!";
                             fase_actual = fase_batalla::victoria_final;
                             reloj_anim_batalla.restart();
+                            // La partida fue ganada: la borramos del archivo para que no quede como cargable
+                            eliminarPartidaPorNombre(paolo.name);
                         }
                         else {
                             mensaje_batalla = "Victoria! Causaste " + std::to_string(dano_real) +
                                 " de dano final. Ganaste " + std::to_string(recompensa) + " de oro. (ENTER)";
                             fase_actual = fase_batalla::ganada;
+                            // Solo guardamos automaticamente tras vencer enemigos normales
+                            guardarPartida(paolo, matriz_entidades);
                         }
-                        // Guardamos automaticamente la partida tras la victoria
-                        guardarPartida(paolo, matriz_entidades);
                     }
                     // Si es el boss, esta debilitado y nunca se curo, gatillamos la cinematica de regeneracion
                     else if (es_boss_actual && !boss_se_curo &&
@@ -981,9 +998,25 @@ int iniciarjuego() {
                 }
             }
             else if (fase_actual == fase_batalla::anim_enemigo_ataca && t_anim >= duracion_anim) {
-                // El enemigo comun pega al 70% de su ataque base; el boss al 80% (mas peligroso pero el jugador tiene chance real)
-                int multiplicador = es_boss_actual ? 80 : 70;
-                int dano_base = (enemigo_actual.ataque * multiplicador) / 100 + (std::rand() % (es_boss_actual ? 4 : 3));
+                // Multiplicadores de dano:
+                //   - enemigo comun: 70%
+                //   - boss antes de regenerarse: 80%
+                //   - boss tras regenerarse (modo enfurecido): 160% + bonus de aleatoriedad mayor
+                int multiplicador;
+                int rango_random;
+                if (es_boss_actual && boss_se_curo) {
+                    multiplicador = 160;
+                    rango_random = 8;
+                }
+                else if (es_boss_actual) {
+                    multiplicador = 80;
+                    rango_random = 4;
+                }
+                else {
+                    multiplicador = 70;
+                    rango_random = 3;
+                }
+                int dano_base = (enemigo_actual.ataque * multiplicador) / 100 + (std::rand() % rango_random);
                 int dano_real = dano_base - (paolo.defensa / 10);
                 if (defendiendo) {
                     dano_real = dano_real / 2;
@@ -999,8 +1032,14 @@ int iniciarjuego() {
                     fase_actual = fase_batalla::perdida;
                 }
                 else {
-                    mensaje_batalla = "El " + enemigo_actual.nombre + " te causa " +
-                        std::to_string(dano_real) + " de dano. Tu turno! (1/2/3/4)";
+                    if (es_boss_actual && boss_se_curo) {
+                        mensaje_batalla = "El " + enemigo_actual.nombre + " enfurecido te golpea por " +
+                            std::to_string(dano_real) + "! Tu turno (1/2/3/4)";
+                    }
+                    else {
+                        mensaje_batalla = "El " + enemigo_actual.nombre + " te causa " +
+                            std::to_string(dano_real) + " de dano. Tu turno! (1/2/3/4)";
+                    }
                     fase_actual = fase_batalla::espera_input;
                 }
             }

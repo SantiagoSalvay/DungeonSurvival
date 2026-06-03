@@ -413,6 +413,33 @@ bool eliminarPartidaPorIndice(int indice) {
 	return true;
 }
 
+// Elimina del archivo la partida guardada con el nombre dado.
+// Se usa al ganar el juego, para que la partida "completada" no quede como cargable.
+// Si el nombre esta vacio NO hace nada, asi evitamos borrar masivamente partidas
+// viejas que tengan name vacio.
+bool eliminarPartidaPorNombre(const std::string& nombre) {
+	if (nombre.empty()) {
+		return false;
+	}
+	std::vector<registro_partida> partidas = obtenerPartidas();
+	bool elimino = false;
+	for (int i = static_cast<int>(partidas.size()) - 1; i >= 0; i--) {
+		if (partidas[i].pj.name == nombre) {
+			partidas.erase(partidas.begin() + i);
+			elimino = true;
+		}
+	}
+	if (!elimino) return false;
+	std::ofstream archivo(archivo_partidas, std::ios::trunc);
+	if (!archivo.is_open()) {
+		return false;
+	}
+	for (const auto& registro : partidas) {
+		escribirregistro(archivo, registro, registro.entidades);
+	}
+	return true;
+}
+
 // Convierte un timestamp epoch en una cadena legible "dd/mm/aaaa hh:mm"
 std::string formatearFecha(long long timestamp) {
 	if (timestamp <= 0) return "Sin fecha";

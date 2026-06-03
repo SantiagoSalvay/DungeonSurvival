@@ -36,3 +36,4 @@ bool cargarPartida(personaje& pj, string matriz_entidades[max_filas][max_columna
 bool cargarPartidaPorIndice(personaje& pj, int indice, string matriz_entidades[max_filas][max_columnas]);
 bool cargarPartidaPorIndice(personaje& pj, int indice);
 bool eliminarPartidaPorIndice(int indice);
+bool eliminarPartidaPorNombre(const std::string& nombre);
