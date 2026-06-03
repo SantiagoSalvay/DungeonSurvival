@@ -159,7 +159,7 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     <ClCompile Include="funciones.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="mapaf.cpp" />
-    <ClCompile Include="Menu.cpp" />
+    <ClCompile Include="Motor.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="funciones.h" />

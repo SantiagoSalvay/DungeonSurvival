@@ -18,7 +18,7 @@
     <ClCompile Include="Main.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
-    <ClCompile Include="Menu.cpp">
+    <ClCompile Include="Motor.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
     <ClCompile Include="entidades.cpp">
