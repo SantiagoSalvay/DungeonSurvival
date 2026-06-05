@@ -746,6 +746,12 @@ int iniciarjuego() {
                         int n_grupos = contar_grupos();
                         if (cursor_inventario < n_grupos - 1) cursor_inventario++;
                     }
+                    else if (key_pressed->code == sf::Keyboard::Key::Num6) {
+                        // Ordenamos el inventario alfabeticamente (selection sort)
+                        ordenarburbuja(paolo.inventario, paolo.cant_items);
+                        cursor_inventario = 0;
+                        std::cout << "Inventario ya ordenado" << std::endl;
+                    }
                     else if (key_pressed->code == sf::Keyboard::Key::Enter) {
                         if (paolo.cant_items > 0) {
                             int idx_plano = indice_plano_grupo(cursor_inventario);

@@ -82,8 +82,9 @@ char interactuar(personaje& pj, string matriz_entidades[max_filas][max_columnas]
 
 		int random_loot = rand() % 3;
 		if (random_loot == 0) {
-			cofre_local.loot[0] = "Daga Rota";
-			cofre_local.loot[1] = "Basura Premium";
+			// El loot DEBE quedar ordenado alfabeticamente para que fusionar() funcione bien
+			cofre_local.loot[0] = "Basura Premium";
+			cofre_local.loot[1] = "Daga Rota";
 			cofre_local.cant_loot = 2;
 		}
 		else if (random_loot == 1) {
@@ -107,6 +108,9 @@ char interactuar(personaje& pj, string matriz_entidades[max_filas][max_columnas]
 			pj.inventario[i] = inventario_temporal[i];
 		}
 		pj.cant_items = nueva_cantidad;
+
+		// Red de seguridad: garantizamos que el inventario quede ordenado tras fusionar el loot
+		ordenarburbuja(pj.inventario, pj.cant_items);
 
 		// Devolvemos las recompensas para que el menu pueda mostrar el cartel
 		cofre_resultado.oro = cofre_local.oro;

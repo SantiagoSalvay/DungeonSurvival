@@ -357,56 +357,23 @@ C
 
 #PARTIDA
 Paolo
-1780407595
-205
-77
-Espada de Hierro
-Armadura Pesada
-20
-50
-5
-4
-5
+1780669087
+53
+42
+
+
 8
+0
+4
+4
+2
+5
 Armadura Ligera
-Armadura Pesada
-Daga Rota
+Armadura Ligera
 Basura Premium
 Daga Rota
-Basura Premium
 Espada de Hierro
-Palo
 #ENTIDADES
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -448,11 +415,41 @@ P
 
 
 
+E
 
 
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+E
 
 
 
@@ -709,6 +706,128 @@ Pocion Chica
 
 
 P
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#PARTIDA
+Joaquin
+1780494929
+129
+87
+Palo
+Armadura Pesada
+10
+50
+4
+4
+7
+8
+Armadura Pesada
+Daga Rota
+Basura Premium
+Palo
+Pocion Chica
+Pocion Chica
+Pocion Chica
+Pocion Pequena
+#ENTIDADES
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+P
+
+
+
+
+
+
+
+
+
+
+
 
 
 
