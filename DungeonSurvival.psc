@@ -1,32 +1,14 @@
-// Dungeon Survival
-// Programacion I
-// Autores del proyecto
-// Profesora
-
-
-
-// -------------------------
-// ALGORITMO PRINCIPAL
-// -------------------------
-// -------------------------
 Algoritmo DungeonSurvival
 	
-// --- Limites del mapa y del inventario ---
-// del mapa (8 filas x 12 columnas), el maximo de items que puede cargar
-// Se definen una sola vez al inicio y no se modifican durante el juego.
+// tamano de inv y mapa
 	Definir FILAS_MAPA, COLS_MAPA Como Entero
 	Definir MAX_INV, MAX_TIENDA Como Entero
-	FILAS_MAPA  <- 8
-	COLS_MAPA   <- 12
+	FILAS_MAPA  <- 10
+	COLS_MAPA   <- 10
 	MAX_INV     <- 15
 	MAX_TIENDA  <- 5
 	
-// --- Datos del jugador
-// PSeInt no tiene registros (structs), entonces simulamos uno usando
-// variables separadas que juntas describen el estado completo del
-// personaje: nombre, vida actual y maxima, ataque, defensa, oro,
-// nivel actual, posicion en el mapa, intentos y mazmorras superadas.
-// "vivoJugador" es un indicador logico: Verdadero mientras tenga vida.
+// stats del jugador
 	Definir nombreJugador Como Cadena
 	Definir vidaJugador, vidaMaxJugador Como Entero
 	Definir ataqueJugador, defensaJugador Como Entero
@@ -35,21 +17,16 @@ Algoritmo DungeonSurvival
 	Definir intentosJugador, mazmorrasPasadas Como Entero
 	Definir vivoJugador Como Logico
 	
-// --- Inventario
-// El inventario es un arreglo de cadenas de texto de 15 posiciones.
-// Cada posicion guarda el nombre de un item (ej: "Pocion menor").
+// inventario
 	Definir inventario Como Cadena
 	Dimension inventario[15]
 	Definir cantidadItems Como Entero
 	
-// --- Mapa
-// El mapa es una matriz de 8 filas por 12 columnas de caracteres.
-// Cada celda contiene un simbolo que representa lo que hay en ese lugar:
-// '#' = pared, '.' = piso libre, 'P' = jugador, 'E' = enemigo, etc.
+
 	Definir mapa Como Caracter
 	Dimension mapa[8,12]
 	
-// su efecto numerico (indice 1) son del mismo articulo. Este patron se
+
 	Definir nombresTienda Como Cadena
 	Dimension nombresTienda[5]
 	Definir preciosTienda Como Entero
@@ -57,11 +34,7 @@ Algoritmo DungeonSurvival
 	Definir efectoTienda Como Entero
 	Dimension efectoTienda[5]
 	
-// --- Guardado
-// En PSeInt estandar no se pueden usar archivos reales facilmente,
-// entonces simulamos el guardado guardando los datos en variables
-// que persisten mientras el programa esta abierto. "saveExiste" indica
-// si hay una partida guardada disponible para cargar.
+// Guardado
 	Definir saveExiste Como Logico
 	Definir saveNombre Como Cadena
 	Definir saveVida, saveAtaque, saveOro Como Entero
@@ -71,34 +44,28 @@ Algoritmo DungeonSurvival
 	Definir saveCantidadItems Como Entero
 	saveExiste <- Falso
 	
-// --- Control del menu
-// "seguirJugando" controla el bucle principal: mientras sea Verdadero,
-// el menu se sigue mostrando. "resultadoPartida" guarda el resultado
+// Control del menu
 	Definir opcionMenu Como Entero
 	Definir seguirJugando Como Logico
 	Definir resultadoPartida Como Entero
 	
 	seguirJugando <- Verdadero
 	
-// La tienda se inicializa una sola vez al arrancar el programa.
+
 	inicializarTienda(nombresTienda, preciosTienda, efectoTienda)
 	
-// Mostramos la pantalla de bienvenida antes de entrar al menu.
+
 	mostrarBienvenida()
 	pausar()
 	
-// elija la opcion "Salir" (opcion 6), que pone "seguirJugando" en Falso.
 	Repetir
 		mostrarMenuPrincipal()
 		Escribir Sin Saltar "  Tu eleccion: "
 		Leer opcionMenu
 		
-// Cada numero lleva a una rama diferente del juego.
+
 		Segun opcionMenu Hacer
 			1:
-// El jugador elige empezar desde cero.
-// Primero se inicializan todos los datos del jugador con "nuevaPartida",
-// y luego se lanza el bucle de juego con "jugarAventura".
 				nuevaPartida(nombreJugador, vidaJugador, vidaMaxJugador, ataqueJugador, defensaJugador, oroJugador, nivelJugador, posXJugador, posYJugador, intentosJugador, mazmorrasPasadas, vivoJugador, inventario, cantidadItems)
 				resultadoPartida <- jugarAventura(nombreJugador, vidaJugador, vidaMaxJugador, ataqueJugador, defensaJugador, oroJugador, nivelJugador, posXJugador, posYJugador, intentosJugador, mazmorrasPasadas, vivoJugador, inventario, cantidadItems, mapa, FILAS_MAPA, COLS_MAPA, nombresTienda, preciosTienda, efectoTienda, MAX_TIENDA, MAX_INV, saveExiste, saveNombre, saveVida, saveAtaque, saveOro, saveNivel, saveIntentos, saveInventario, saveCantidadItems)
 				
@@ -110,9 +77,6 @@ Algoritmo DungeonSurvival
 				FinSi
 				pausar()
 			2:
-// El jugador quiere continuar una partida que guardo antes.
-// Primero verificamos si existe un guardado (saveExiste = Verdadero).
-// Si no hay guardado, avisamos al jugador.
 				Si saveExiste Entonces
 					cargarPartida(saveNombre, saveVida, saveAtaque, saveOro, saveNivel, saveIntentos, saveInventario, saveCantidadItems, nombreJugador, vidaJugador, vidaMaxJugador, ataqueJugador, defensaJugador, oroJugador, nivelJugador, posXJugador, posYJugador, intentosJugador, mazmorrasPasadas, vivoJugador, inventario, cantidadItems)
 					Escribir ""
@@ -131,25 +95,19 @@ Algoritmo DungeonSurvival
 				FinSi
 				pausar()
 			3:
-// Muestra la pantalla con las reglas del juego.
 				mostrarReglas()
 				pausar()
 			4:
-// Muestra el manual de controles con todas las teclas disponibles.
 				mostrarManual()
 				pausar()
 			5:
-// Muestra quienes desarrollaron el juego.
 				mostrarCreditos()
 				pausar()
 			6:
-// El jugador decide salir. Ponemos el flag en Falso para
-// que el bucle DO-WHILE termine en su proxima evaluacion.
 				seguirJugando <- Falso
 				Escribir ""
 				Escribir " >> Hasta la proxima, aventurero!"
 			De Otro Modo:
-// Si el jugador escribe un numero fuera del rango 1-6, se le avisa.
 				Escribir ""
 				Escribir " >> Opcion invalida. Elegi un numero entre 1 y 6."
 				pausar()
@@ -159,14 +117,6 @@ Algoritmo DungeonSurvival
 FinAlgoritmo
 
 
-// -------------------------
-// SUBPROCESOS SIN PARAMETROS (solo muestran informacion)
-// -------------------------
-// Estos subprocesos no reciben ni devuelven datos. Su unica funcion es
-// Son equivalentes a funciones "void" sin argumentos en otros lenguajes.
-// -------------------------
-
-// Muestra la pantalla de titulo al abrir el programa por primera vez.
 SubProceso mostrarBienvenida
 	Borrar Pantalla
 	Escribir "=========================================="
@@ -186,7 +136,6 @@ SubProceso mostrarBienvenida
 FinSubProceso
 
 
-// Muestra las opciones del menu principal para que el jugador elija.
 SubProceso mostrarMenuPrincipal
 	Escribir ""
 	Escribir "------------- MENU PRINCIPAL -------------"
@@ -218,7 +167,6 @@ SubProceso mostrarReglas
 FinSubProceso
 
 
-// junto con el significado de cada simbolo que aparece en el mapa.
 SubProceso mostrarManual
 	Borrar Pantalla
 	Escribir "============ MANUAL DE CONTROLES ============"
@@ -283,7 +231,6 @@ SubProceso mostrarMenuCombate
 FinSubProceso
 
 
-// Muestra el menu de acciones durante la exploracion de la mazmorra.
 SubProceso mostrarMenuExploracion
 	Escribir ""
 	Escribir " --- ACCIONES ---"
@@ -293,8 +240,6 @@ SubProceso mostrarMenuExploracion
 FinSubProceso
 
 
-// Detiene la ejecucion hasta que el jugador presione ENTER.
-// Se usa para dar tiempo a leer los mensajes antes de continuar.
 SubProceso pausar
 	Definir dummy Como Cadena
 	Escribir ""
@@ -303,15 +248,6 @@ SubProceso pausar
 FinSubProceso
 
 
-// -------------------------
-// SUBPROCESOS CON PARAMETROS QUE NO DEVUELVEN VALOR
-// -------------------------
-// Estos subprocesos reciben datos a traves de sus parametros y realizan
-// un valor de retorno como tal. Los parametros "Por Referencia" permiten
-// -------------------------
-
-// Muestra en pantalla todos los datos actuales del personaje:
-// vida, ataque, defensa, oro, nivel y estadisticas de partida.
 SubProceso mostrarEstado(nombre, vida, vidaMax, ataque, defensa, oro, nivel, intentos, mazmorras)
 	Escribir ""
 	Escribir "+-------------- ESTADO --------------+"
@@ -325,7 +261,6 @@ SubProceso mostrarEstado(nombre, vida, vidaMax, ataque, defensa, oro, nivel, int
 FinSubProceso
 
 
-// Muestra el contenido del inventario recorriendo el vector con un FOR.
 SubProceso mostrarInventario(inv, cant)
 	Definir i Como Entero
 	Escribir ""
@@ -341,13 +276,10 @@ SubProceso mostrarInventario(inv, cant)
 FinSubProceso
 
 
-// Muestra el mapa de la mazmorra en pantalla.
 SubProceso mostrarMapa(mapa, filas, cols)
 	Definir i, j Como Entero
 	Escribir ""
 	Escribir "  --- MAPA DE LA MAZMORRA ---"
-// El FOR exterior recorre las filas (de arriba a abajo).
-// El FOR interior recorre las columnas (de izquierda a derecha).
 	Para i <- 1 Hasta filas Con Paso 1 Hacer
 		Escribir Sin Saltar "   "
 		Para j <- 1 Hasta cols Con Paso 1 Hacer
@@ -358,13 +290,8 @@ SubProceso mostrarMapa(mapa, filas, cols)
 FinSubProceso
 
 
-// Construye el mapa de una mazmorra desde cero segun el nivel actual.
-// Primero rellena toda la matriz: los bordes se marcan con '#' (pared)
-// superior izquierda y ubica los elementos del nivel con un SWITCH.
 SubProceso inicializarMapa(mapa, filas, cols, nivel, posXJugador Por Referencia, posYJugador Por Referencia)
 	Definir i, j Como Entero
-// Dos FOR anidados rellenan toda la matriz.
-// Si esta en el borde, pone pared; si no, pone piso.
 	Para i <- 1 Hasta filas Con Paso 1 Hacer
 		Para j <- 1 Hasta cols Con Paso 1 Hacer
 			Si i = 1 O i = filas O j = 1 O j = cols Entonces
@@ -375,21 +302,17 @@ SubProceso inicializarMapa(mapa, filas, cols, nivel, posXJugador Por Referencia,
 		FinPara
 	FinPara
 	
-// Ubicamos al jugador en la posicion inicial (fila 2, columna 2)
-// y marcamos esa celda con 'P' en el mapa.
 	posYJugador <- 2
 	posXJugador <- 2
 	mapa[posYJugador, posXJugador] <- 'P'
 	
-// Nivel 1 y 2 tienen comerciante ('M') y escaleras ('S').
-// Nivel 3 reemplaza las escaleras por el boss final ('B').
 	Segun nivel Hacer
 		1:
-			mapa[3, 6]  <- 'C'   // cofre
-			mapa[5, 4]  <- 'M'   // comerciante
-			mapa[4, 9]  <- 'E'   // enemigo 1
-			mapa[6, 7]  <- 'E'   // enemigo 2
-			mapa[7, 11] <- 'S'   // escaleras al nivel 2
+			mapa[3, 6]  <- 'C'   
+			mapa[5, 4]  <- 'M'   
+			mapa[4, 9]  <- 'E'   
+			mapa[6, 7]  <- 'E'   
+			mapa[7, 11] <- 'S'   
 		2:
 			mapa[3, 5]  <- 'E'
 			mapa[4, 10] <- 'C'
@@ -402,12 +325,12 @@ SubProceso inicializarMapa(mapa, filas, cols, nivel, posXJugador Por Referencia,
 			mapa[4, 4]  <- 'C'
 			mapa[5, 10] <- 'E'
 			mapa[6, 7]  <- 'E'
-			mapa[7, 11] <- 'B'   // boss final
+			mapa[7, 11] <- 'B'   
 	FinSegun
 FinSubProceso
 
 
-// Ejecuta un ataque de un personaje a otro.
+
 SubProceso atacar(ataqueOrigen, vidaDestino Por Referencia, nombreOrigen, nombreDestino)
 	Definir dano Como Entero
 	dano <- calcularDanio(ataqueOrigen)
@@ -419,11 +342,6 @@ SubProceso atacar(ataqueOrigen, vidaDestino Por Referencia, nombreOrigen, nombre
 FinSubProceso
 
 
-// Otorga la recompensa al jugador cuando derrota a un enemigo.
-// El oro ganado depende del nivel del enemigo (mas nivel = mas oro).
-// Ademas hay una probabilidad de obtener items: se usa azar(4) para
-// decidir que loot cae (0-2 items segun el resultado), y luego se
-// llama a "fusionarLoot" para agregarlo al inventario del jugador.
 SubProceso recompensaEnemigo(oro Por Referencia, inv Por Referencia, cant Por Referencia, maxInv, nivelEnemigo)
 	Definir oroGanado, idx Como Entero
 	Definir loot Como Cadena
@@ -434,9 +352,6 @@ SubProceso recompensaEnemigo(oro Por Referencia, inv Por Referencia, cant Por Re
 	oro <- oro + oroGanado
 	Escribir "  >> Ganas ", oroGanado, " de oro."
 	
-// Decidimos el tipo de loot con un numero aleatorio entre 0 y 3.
-// Cada valor del resultado corresponde a un conjunto diferente de items.
-// Si el resultado es 3, no cae ningun item (es posible no obtener loot).
 	idx <- azar(4)
 	cantLoot <- 0
 	Si idx = 0 Entonces
@@ -452,17 +367,13 @@ SubProceso recompensaEnemigo(oro Por Referencia, inv Por Referencia, cant Por Re
 		loot[2] <- "Daga oxidada"
 		cantLoot <- 2
 	FinSi
-// Si idx resulto 3, cantLoot queda en 0 y no se agrega nada.
 	
 	Si cantLoot > 0 Entonces
-// Agregamos los items obtenidos al inventario del jugador.
 		fusionarLoot(inv, cant, maxInv, loot, cantLoot)
 	FinSi
 FinSubProceso
 
 
-// Maneja un combate completo por turnos entre el jugador y un enemigo.
-// luego actua el enemigo automaticamente si sigue vivo.
 SubProceso combate(nombreEnemigo, vidaEnemigoIni, ataqueEnemigo, nivelEnemigo, nombreJugador, vidaJugador Por Referencia, vidaMaxJugador, ataqueJugador, defensaJugador, oroJugador Por Referencia, inventario Por Referencia, cantidadItems Por Referencia, maxInv, victoria Por Referencia, huida Por Referencia)
 	Definir vidaEnemigo Como Entero
 	Definir opcion Como Entero
@@ -470,7 +381,6 @@ SubProceso combate(nombreEnemigo, vidaEnemigoIni, ataqueEnemigo, nivelEnemigo, n
 	Definir danoRecibido Como Entero
 	Definir exitoHuida Como Entero
 	
-// Inicializamos la vida del enemigo y los estados del combate.
 	vidaEnemigo <- vidaEnemigoIni
 	defendiendo <- Falso
 	victoria    <- Falso
@@ -478,11 +388,10 @@ SubProceso combate(nombreEnemigo, vidaEnemigoIni, ataqueEnemigo, nivelEnemigo, n
 	
 	Escribir ""
 	Escribir " ============================================"
-	Escribir "    Un ", nombreEnemigo, " salvaje aparece!"
+	Escribir "    Un ", nombreEnemigo, " aparece!"
 	Escribir "    Vida: ", vidaEnemigo, "  Ataque: ", ataqueEnemigo
 	Escribir " ============================================"
 	
-// Esta es una condicion compuesta con tres partes unidas por Y logico.
 	Mientras estaVivo(vidaJugador) Y estaVivo(vidaEnemigo) Y NO huida Hacer
 		Escribir ""
 		Escribir "  Tu vida: ", vidaJugador, "/", vidaMaxJugador, "   |   ", nombreEnemigo, ": ", vidaEnemigo
@@ -495,16 +404,12 @@ SubProceso combate(nombreEnemigo, vidaEnemigoIni, ataqueEnemigo, nivelEnemigo, n
 				defendiendo <- Falso
 				atacar(ataqueJugador, vidaEnemigo, nombreJugador, nombreEnemigo)
 			2:
-// El jugador intenta usar una pocion del inventario.
-// "usarPocion" busca la mejor pocion disponible y la consume.
 				defendiendo <- Falso
 				usarPocion(inventario, cantidadItems, vidaJugador, vidaMaxJugador)
 			3:
-// El jugador adopta postura defensiva: el flag "defendiendo" se activa.
 				defendiendo <- Verdadero
 				Escribir "  >> ", nombreJugador, " se cubre con su defensa."
 			4:
-// Intento de huida: hay un 50% de probabilidad (azar(2) devuelve 0 o 1).
 				defendiendo <- Falso
 				exitoHuida <- azar(2)
 				Si exitoHuida = 0 Entonces
@@ -518,12 +423,10 @@ SubProceso combate(nombreEnemigo, vidaEnemigoIni, ataqueEnemigo, nivelEnemigo, n
 					FinSi
 				FinSi
 			De Otro Modo:
-// Si el jugador ingresa algo invalido, pierde el turno sin hacer nada.
 				Escribir "  >> Accion invalida. Pierdes el turno."
 				defendiendo <- Falso
 		FinSegun
 		
-// pero siempre recibe al menos 1 punto de dano.
 		Si estaVivo(vidaEnemigo) Y NO huida Entonces
 			danoRecibido <- calcularDanio(ataqueEnemigo)
 			Si defendiendo Entonces
@@ -542,7 +445,6 @@ SubProceso combate(nombreEnemigo, vidaEnemigoIni, ataqueEnemigo, nivelEnemigo, n
 		FinSi
 	FinMientras
 	
-// y se entregan las recompensas correspondientes.
 	Si NO estaVivo(vidaEnemigo) Y NO huida Entonces
 		Escribir ""
 		Escribir "  >> Has derrotado a ", nombreEnemigo, "!"
@@ -552,12 +454,8 @@ SubProceso combate(nombreEnemigo, vidaEnemigoIni, ataqueEnemigo, nivelEnemigo, n
 FinSubProceso
 
 
-// Busca una pocion en el inventario y la usa para recuperar vida.
-// Una vez usada la pocion, se elimina del inventario "corriendo" todos
 SubProceso usarPocion(inv Por Referencia, cant Por Referencia, vida Por Referencia, vidaMax)
 	Definir indice, curacion, i Como Entero
-// Primero buscamos si hay una Pocion mayor disponible.
-// Si no hay, buscamos una Pocion menor. Si no hay ninguna, avisamos.
 	indice <- buscarItem(inv, cant, "Pocion mayor")
 	curacion <- 0
 	Si indice > 0 Entonces
@@ -570,15 +468,11 @@ SubProceso usarPocion(inv Por Referencia, cant Por Referencia, vida Por Referenc
 	FinSi
 	
 	Si indice > 0 Entonces
-// Aplicamos la curacion sin superar el maximo de vida.
 		vida <- vida + curacion
 		Si vida > vidaMax Entonces
 			vida <- vidaMax
 		FinSi
 		Escribir "  >> Usaste ", inv[indice], ". Recuperas ", curacion, " de vida."
-// Eliminamos la pocion del inventario desplazando todos los items
-// que estan a su derecha una posicion a la izquierda.
-// Luego vaciamos la ultima posicion y reducimos el contador.
 		Para i <- indice Hasta cant - 1 Con Paso 1 Hacer
 			inv[i] <- inv[i+1]
 		FinPara
@@ -590,9 +484,6 @@ SubProceso usarPocion(inv Por Referencia, cant Por Referencia, vida Por Referenc
 FinSubProceso
 
 
-// Permite al jugador interactuar con el comerciante de la mazmorra.
-// vender un item del inventario, o comparar el inventario con la tienda.
-// Los efectos de las armas y armaduras se aplican directamente sobre los
 SubProceso comerciante(oro Por Referencia, inv Por Referencia, cant Por Referencia, maxInv, ataqueJugador Por Referencia, defensaJugador Por Referencia, vidaMaxJugador Por Referencia, nombresTienda, preciosTienda, efectoTienda, maxTienda)
 	Definir opcion, i Como Entero
 	Definir salir Como Logico
@@ -615,12 +506,9 @@ SubProceso comerciante(oro Por Referencia, inv Por Referencia, cant Por Referenc
 		Escribir Sin Saltar " Tu eleccion: "
 		Leer opcion
 		
-// Si eligio un numero entre 1 y maxTienda, intenta comprar ese producto.
 		Si opcion >= 1 Y opcion <= maxTienda Entonces
 			Si oro >= preciosTienda[opcion] Entonces
 				Si cant < maxInv Entonces
-// Le descontamos el precio y aplicamos el efecto segun el tipo de item.
-// Armas y armaduras modifican atributos permanentes del jugador.
 					oro <- oro - preciosTienda[opcion]
 					Si nombresTienda[opcion] = "Espada de hierro" Entonces
 						ataqueJugador <- ataqueJugador + efectoTienda[opcion]
@@ -638,7 +526,6 @@ SubProceso comerciante(oro Por Referencia, inv Por Referencia, cant Por Referenc
 							FinSi
 						FinSi
 					FinSi
-// En todos los casos, el item queda registrado en el inventario.
 					cant <- cant + 1
 					inv[cant] <- nombresTienda[opcion]
 				SiNo
@@ -650,7 +537,6 @@ SubProceso comerciante(oro Por Referencia, inv Por Referencia, cant Por Referenc
 			pausar()
 		SiNo
 			Si opcion = maxTienda + 1 Entonces
-// El jugador quiere vender un item de su inventario.
 				venderItems(inv, cant, oro)
 				pausar()
 			SiNo
@@ -659,7 +545,6 @@ SubProceso comerciante(oro Por Referencia, inv Por Referencia, cant Por Referenc
 					pausar()
 				SiNo
 					Si opcion = 0 Entonces
-// El jugador cierra la tienda y vuelve a explorar la mazmorra.
 						salir <- Verdadero
 					SiNo
 						Escribir " >> Opcion invalida."
@@ -672,8 +557,6 @@ SubProceso comerciante(oro Por Referencia, inv Por Referencia, cant Por Referenc
 FinSubProceso
 
 
-// Permite al jugador elegir un item de su inventario para venderlo.
-// El precio de venta es aleatorio (entre 5 y 14 de oro).
 SubProceso venderItems(inv Por Referencia, cant Por Referencia, oro Por Referencia)
 	Definir opcion, i, precio Como Entero
 	Si cant = 0 Entonces
@@ -683,7 +566,6 @@ SubProceso venderItems(inv Por Referencia, cant Por Referencia, oro Por Referenc
 		Escribir Sin Saltar " Numero del item a vender (0 cancelar): "
 		Leer opcion
 		Si opcion >= 1 Y opcion <= cant Entonces
-// El precio de venta varia aleatoriamente entre 5 y 14 de oro.
 			precio <- 5 + azar(10)
 			oro <- oro + precio
 			Escribir " >> Vendiste ", inv[opcion], " por ", precio, " de oro."
@@ -722,9 +604,6 @@ SubProceso aparearTiendaInventario(inv, cant, nombresTienda, maxTienda)
 FinSubProceso
 
 
-// Abre un cofre en la mazmorra y entrega su contenido al jugador.
-// depende del nivel actual de la mazmorra: cuanto mas avanzado, mas oro.
-// El loot se agrega al inventario usando "fusionarLoot".
 SubProceso abrirCofre(inv Por Referencia, cant Por Referencia, maxInv, oro Por Referencia, nivel)
 	Definir tipoLoot, cantLoot Como Entero
 	Definir loot Como Cadena
@@ -755,21 +634,16 @@ SubProceso abrirCofre(inv Por Referencia, cant Por Referencia, maxInv, oro Por R
 			cantLoot <- 1
 	FinSegun
 	
-// El oro encontrado en el cofre aumenta segun el nivel de la mazmorra.
 	oroEncontrado <- 10 + azar(15) + (nivel * 5)
 	oro <- oro + oroEncontrado
 	Escribir "   + ", oroEncontrado, " de oro"
 	
-// Agregamos los items del cofre al inventario del jugador.
 	fusionarLoot(inv, cant, maxInv, loot, cantLoot)
 FinSubProceso
 
 
-// Si el inventario esta lleno, descarta el item y avisa al jugador.
 SubProceso fusionarLoot(inv Por Referencia, cant Por Referencia, maxInv, loot, cantLoot)
 	Definir i Como Entero
-// Intentamos agregar cada item del loot al inventario.
-// Si la cantidad actual es menor al maximo, hay lugar para agregar.
 	Para i <- 1 Hasta cantLoot Con Paso 1 Hacer
 		Si cant < maxInv Entonces
 			cant <- cant + 1
@@ -785,11 +659,9 @@ FinSubProceso
 SubProceso ordenarInventario(inv Por Referencia, cant)
 	Definir i, j Como Entero
 	Definir aux Como Cadena
-// porque los ultimos elementos ya estan en su lugar correcto.
 	Para i <- 1 Hasta cant - 1 Con Paso 1 Hacer
 		Para j <- 1 Hasta cant - i Con Paso 1 Hacer
 			Si inv[j] > inv[j+1] Entonces
-// Intercambiamos los dos elementos usando una variable auxiliar.
 				aux       <- inv[j]
 				inv[j]    <- inv[j+1]
 				inv[j+1]  <- aux
@@ -799,40 +671,29 @@ SubProceso ordenarInventario(inv Por Referencia, cant)
 FinSubProceso
 
 
-// Carga los productos fijos de la tienda en los arreglos paralelos.
-// Se ejecuta una sola vez al inicio del programa. Los cinco productos
-// de tres arreglos distintos (la tecnica de arreglos paralelos).
 SubProceso inicializarTienda(nombresTienda Por Referencia, preciosTienda Por Referencia, efectoTienda Por Referencia)
-// Pocion menor: cura 20 de vida, cuesta 15 de oro.
 	nombresTienda[1] <- "Pocion menor"
 	preciosTienda[1] <- 15
 	efectoTienda[1]  <- 20
 	
-// Pocion mayor: cura 50 de vida, cuesta 35 de oro.
 	nombresTienda[2] <- "Pocion mayor"
 	preciosTienda[2] <- 35
 	efectoTienda[2]  <- 50
 	
-// Espada de hierro: aumenta el ataque en 5, cuesta 50 de oro.
 	nombresTienda[3] <- "Espada de hierro"
 	preciosTienda[3] <- 50
 	efectoTienda[3]  <- 5
 	
-// Escudo de madera: aumenta la defensa en 3, cuesta 30 de oro.
 	nombresTienda[4] <- "Escudo de madera"
 	preciosTienda[4] <- 30
 	efectoTienda[4]  <- 3
 	
-// Armadura ligera: aumenta la vida maxima en 25, cuesta 60 de oro.
 	nombresTienda[5] <- "Armadura ligera"
 	preciosTienda[5] <- 60
 	efectoTienda[5]  <- 25
 FinSubProceso
 
 
-// Configura todos los datos del jugador para comenzar una partida nueva.
-// Pide el nombre al jugador (si deja vacio, usa "Paolo" por defecto).
-// El inventario inicial tiene dos items: un Palo y una Pocion menor.
 SubProceso nuevaPartida(nombreJugador Por Referencia, vidaJugador Por Referencia, vidaMaxJugador Por Referencia, ataqueJugador Por Referencia, defensaJugador Por Referencia, oroJugador Por Referencia, nivelJugador Por Referencia, posXJugador Por Referencia, posYJugador Por Referencia, intentosJugador Por Referencia, mazmorrasPasadas Por Referencia, vivoJugador Por Referencia, inventario Por Referencia, cantidadItems Por Referencia)
 	Borrar Pantalla
 	Escribir "============= NUEVA PARTIDA ============="
@@ -842,7 +703,6 @@ SubProceso nuevaPartida(nombreJugador Por Referencia, vidaJugador Por Referencia
 		nombreJugador <- "Paolo"
 	FinSi
 	
-// Esto permite cambiar los valores iniciales del juego en un solo lugar.
 	vidaMaxJugador  <- generarVidaInicial
 	vidaJugador     <- vidaMaxJugador
 	oroJugador      <- generarOroInicial
@@ -855,7 +715,6 @@ SubProceso nuevaPartida(nombreJugador Por Referencia, vidaJugador Por Referencia
 	mazmorrasPasadas <- 0
 	vivoJugador     <- Verdadero
 	
-// El inventario empieza con dos items en las posiciones 1 y 2.
 	cantidadItems    <- 2
 	inventario[1]    <- "Palo"
 	inventario[2]    <- "Pocion menor"
@@ -867,9 +726,6 @@ SubProceso nuevaPartida(nombreJugador Por Referencia, vidaJugador Por Referencia
 FinSubProceso
 
 
-// Controla el recorrido del jugador dentro de una mazmorra.
-// el inventario, el guardado y la salida al menu.
-// no haya pasado de nivel y no haya elegido salir al menu.
 SubProceso explorarMazmorra(nombreJugador, vidaJugador Por Referencia, vidaMaxJugador Por Referencia, ataqueJugador Por Referencia, defensaJugador Por Referencia, oroJugador Por Referencia, nivelJugador Por Referencia, posXJugador Por Referencia, posYJugador Por Referencia, intentosJugador Por Referencia, mazmorrasPasadas Por Referencia, vivoJugador Por Referencia, inventario Por Referencia, cantidadItems Por Referencia, mapa Por Referencia, FILAS_MAPA, COLS_MAPA, nombresTienda, preciosTienda, efectoTienda, MAX_TIENDA, MAX_INV, resultado Por Referencia, saveExiste Por Referencia, saveNombre Por Referencia, saveVida Por Referencia, saveAtaque Por Referencia, saveOro Por Referencia, saveNivel Por Referencia, saveIntentos Por Referencia, saveInventario Por Referencia, saveCantidadItems Por Referencia)
 	Definir accion Como Entero
 	Definir nuevaX, nuevaY Como Entero
@@ -894,7 +750,6 @@ SubProceso explorarMazmorra(nombreJugador, vidaJugador Por Referencia, vidaMaxJu
 	FinSi
 	pausar()
 	
-// no haya pasado de nivel y no haya pedido salir al menu.
 	Mientras estaVivo(vidaJugador) Y NO avanzaNivel Y NO salirAlMenu Hacer
 		Borrar Pantalla
 		mostrarEstado(nombreJugador, vidaJugador, vidaMaxJugador, ataqueJugador, defensaJugador, oroJugador, nivelJugador, intentosJugador, mazmorrasPasadas)
@@ -903,86 +758,53 @@ SubProceso explorarMazmorra(nombreJugador, vidaJugador Por Referencia, vidaMaxJu
 		Escribir Sin Saltar "  Accion: "
 		Leer accion
 		
-// Calculamos la nueva posicion tentativa segun la direccion elegida.
 		nuevaX <- posXJugador
 		nuevaY <- posYJugador
 		
 		Segun accion Hacer
 			1:
-// Mover arriba significa disminuir la fila (Y - 1).
 				nuevaY <- posYJugador - 1
 			2:
-// Mover abajo significa aumentar la fila (Y + 1).
 				nuevaY <- posYJugador + 1
 			3:
-// Mover a la izquierda significa disminuir la columna (X - 1).
 				nuevaX <- posXJugador - 1
 			4:
-// Mover a la derecha significa aumentar la columna (X + 1).
 				nuevaX <- posXJugador + 1
 			5:
-// Mostrar el inventario sin moverse.
 				mostrarInventario(inventario, cantidadItems)
 				pausar()
 			6:
-// Ordenar el inventario alfabeticamente y mostrarlo.
 				ordenarInventario(inventario, cantidadItems)
 				Escribir "  >> Inventario ordenado alfabeticamente."
 				mostrarInventario(inventario, cantidadItems)
 				pausar()
 			7:
-// Ver el estado completo del personaje.
 				mostrarEstado(nombreJugador, vidaJugador, vidaMaxJugador, ataqueJugador, defensaJugador, oroJugador, nivelJugador, intentosJugador, mazmorrasPasadas)
 				pausar()
 			8:
-// Guardar el estado actual de la partida en memoria.
 				guardarPartida(nombreJugador, vidaJugador, ataqueJugador, oroJugador, nivelJugador, intentosJugador, inventario, cantidadItems, saveExiste, saveNombre, saveVida, saveAtaque, saveOro, saveNivel, saveIntentos, saveInventario, saveCantidadItems)
 				pausar()
 			9:
-// El jugador decide volver al menu principal.
 				salirAlMenu <- Verdadero
 				resultado   <- 3
 			De Otro Modo:
 					pausar()
 					Escribir "  >> Accion invalida."
 		FinSegun
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-		
-// Si la accion fue un movimiento (1 a 4), validamos la nueva posicion y
-// procesamos lo que hay en la celda destino.
 		Si accion >= 1 Y accion <= 4 Entonces
-// Verificamos que la nueva posicion este dentro de los limites del mapa.
 			Si nuevaY >= 1 Y nuevaY <= FILAS_MAPA Y nuevaX >= 1 Y nuevaX <= COLS_MAPA Entonces
 				destino <- mapa[nuevaY, nuevaX]
 				Si destino = '#' Entonces
-// No se puede atravesar paredes.
 					Escribir "  >> Hay una pared en esa direccion."
 					pausar()
 				SiNo
 					Si destino = '.' Entonces
-// La celda esta libre: movemos al jugador actualizando
-// la posicion anterior a '.' y la nueva a 'P'.
 						mapa[posYJugador, posXJugador] <- '.'
 						posYJugador <- nuevaY
 						posXJugador <- nuevaX
 						mapa[posYJugador, posXJugador] <- 'P'
 					SiNo
 						Si destino = 'E' Entonces
-// Hay un enemigo en esa celda: generamos sus estadisticas
-// segun el nivel actual y lanzamos el combate.
-// Si el jugador gana, ocupa la celda del enemigo.
 							generarEnemigo(nivelJugador, nombreEnemigo, vidaEnemigo, ataqueEnemigo)
 							combate(nombreEnemigo, vidaEnemigo, ataqueEnemigo, nivelJugador, nombreJugador, vidaJugador, vidaMaxJugador, ataqueJugador, defensaJugador, oroJugador, inventario, cantidadItems, MAX_INV, victoriaCombate, huidaCombate)
 							Si victoriaCombate Entonces
@@ -994,8 +816,6 @@ SubProceso explorarMazmorra(nombreJugador, vidaJugador Por Referencia, vidaMaxJu
 							pausar()
 						SiNo
 							Si destino = 'B' Entonces
-// Es el boss final del juego.
-// Tiene estadisticas fijas y muy superiores a los enemigos normales.
 								nombreEnemigo <- "BOSS - Senor de la Mazmorra"
 								vidaEnemigo   <- 80
 								ataqueEnemigo <- 14
@@ -1007,13 +827,9 @@ SubProceso explorarMazmorra(nombreJugador, vidaJugador Por Referencia, vidaMaxJu
 								pausar()
 							SiNo
 								Si destino = 'M' Entonces
-// Hay un comerciante: abrimos el menu de la tienda.
-// El jugador no se mueve a esa celda, solo interactua.
 									comerciante(oroJugador, inventario, cantidadItems, MAX_INV, ataqueJugador, defensaJugador, vidaMaxJugador, nombresTienda, preciosTienda, efectoTienda, MAX_TIENDA)
 								SiNo
 									Si destino = 'C' Entonces
-// Hay un cofre: lo abrimos, recibimos el loot
-// y reemplazamos la celda del cofre por piso libre.
 										abrirCofre(inventario, cantidadItems, MAX_INV, oroJugador, nivelJugador)
 										mapa[nuevaY, nuevaX] <- '.'
 										mapa[posYJugador, posXJugador] <- '.'
@@ -1023,8 +839,6 @@ SubProceso explorarMazmorra(nombreJugador, vidaJugador Por Referencia, vidaMaxJu
 										pausar()
 									SiNo
 										Si destino = 'S' Entonces
-// Son las escaleras al siguiente nivel.
-// Marcamos que se paso de nivel y sumamos al contador de mazmorras.
 											Escribir "  >> Encuentras las escaleras! Avanzas al siguiente nivel."
 											avanzaNivel <- Verdadero
 											mazmorrasPasadas <- mazmorrasPasadas + 1
@@ -1037,32 +851,20 @@ SubProceso explorarMazmorra(nombreJugador, vidaJugador Por Referencia, vidaMaxJu
 					FinSi
 				FinSi
 			SiNo
-// La posicion calculada esta fuera de los bordes del mapa.
 				Escribir "  >> Esa direccion esta fuera del mapa."
 				pausar()
 			FinSi
 		FinSi
 	FinMientras
 	
-// Al salir del bucle, verificamos si el jugador murio.
 	Si NO estaVivo(vidaJugador) Entonces
 		vivoJugador <- Falso
 		resultado   <- 2
 	FinSi
 FinSubProceso
-
-
-// -------------------------
-// SUBPROCESOS CON RETORNO Y CON PARAMETROS (funciones de tipo)
-// -------------------------
-// En PSeInt, un subproceso "con retorno" se declara con la sintaxis
-// -------------------------
-
-// Bucle principal del juego: recorre los niveles 1, 2 y 3 en secuencia.
 SubProceso retorno <- jugarAventura(nombreJugador Por Referencia, vidaJugador Por Referencia, vidaMaxJugador Por Referencia, ataqueJugador Por Referencia, defensaJugador Por Referencia, oroJugador Por Referencia, nivelJugador Por Referencia, posXJugador Por Referencia, posYJugador Por Referencia, intentosJugador Por Referencia, mazmorrasPasadas Por Referencia, vivoJugador Por Referencia, inventario Por Referencia, cantidadItems Por Referencia, mapa Por Referencia, FILAS_MAPA, COLS_MAPA, nombresTienda, preciosTienda, efectoTienda, MAX_TIENDA, MAX_INV, saveExiste Por Referencia, saveNombre Por Referencia, saveVida Por Referencia, saveAtaque Por Referencia, saveOro Por Referencia, saveNivel Por Referencia, saveIntentos Por Referencia, saveInventario Por Referencia, saveCantidadItems Por Referencia)
 	Definir resultado Como Entero
 	resultado <- 0
-// y la partida no haya terminado (resultado = 0 significa "en curso").
 	Mientras estaVivo(vidaJugador) Y nivelJugador <= 3 Y resultado = 0 Hacer
 		explorarMazmorra(nombreJugador, vidaJugador, vidaMaxJugador, ataqueJugador, defensaJugador, oroJugador, nivelJugador, posXJugador, posYJugador, intentosJugador, mazmorrasPasadas, vivoJugador, inventario, cantidadItems, mapa, FILAS_MAPA, COLS_MAPA, nombresTienda, preciosTienda, efectoTienda, MAX_TIENDA, MAX_INV, resultado, saveExiste, saveNombre, saveVida, saveAtaque, saveOro, saveNivel, saveIntentos, saveInventario, saveCantidadItems)
 		Si resultado = 0 Entonces
@@ -1073,14 +875,11 @@ SubProceso retorno <- jugarAventura(nombreJugador Por Referencia, vidaJugador Po
 FinSubProceso
 
 
-// Genera las estadisticas de un enemigo segun el nivel de la mazmorra.
-// Los valores se devuelven por referencia a traves de los parametros.
 SubProceso generarEnemigo(nivel, nombreEnemigo Por Referencia, vidaEnemigo Por Referencia, ataqueEnemigo Por Referencia)
 	Definir tipo Como Entero
 	tipo <- azar(3)
 	Segun nivel Hacer
 		1:
-// Nivel 1: enemigos debiles para introducir al jugador al combate.
 			Segun tipo Hacer
 				0:
 					nombreEnemigo <- "Goblin"
@@ -1096,7 +895,6 @@ SubProceso generarEnemigo(nivel, nombreEnemigo Por Referencia, vidaEnemigo Por R
 					ataqueEnemigo <- 6
 			FinSegun
 		2:
-// Nivel 2: enemigos de dificultad intermedia con mas vida y ataque.
 			Segun tipo Hacer
 				0:
 					nombreEnemigo <- "Orco"
@@ -1112,7 +910,6 @@ SubProceso generarEnemigo(nivel, nombreEnemigo Por Referencia, vidaEnemigo Por R
 					ataqueEnemigo <- 9
 			FinSegun
 		3:
-// Nivel 3: enemigos duros que preceden al boss final.
 			Segun tipo Hacer
 				0:
 					nombreEnemigo <- "Caballero negro"
@@ -1128,21 +925,11 @@ SubProceso generarEnemigo(nivel, nombreEnemigo Por Referencia, vidaEnemigo Por R
 					ataqueEnemigo <- 11
 			FinSegun
 		De Otro Modo:
-// Valor de seguridad por si el nivel estuviera fuera del rango esperado.
 			nombreEnemigo <- "Sombra"
 			vidaEnemigo   <- 20
 			ataqueEnemigo <- 5
 	FinSegun
 FinSubProceso
-
-
-// Definir archivo Como Archivo
-// Abrir archivo Como Escritura "partida.txt"
-// Escribir archivo, nombre
-// Escribir archivo, vida
-// ...
-// Cerrar archivo
-// Aca lo simulamos en memoria para que no de error en perfil estandar.
 SubProceso guardarPartida(nombre, vida, ataque, oro, nivel, intentos, inv, cant, saveExiste Por Referencia, saveNombre Por Referencia, saveVida Por Referencia, saveAtaque Por Referencia, saveOro Por Referencia, saveNivel Por Referencia, saveIntentos Por Referencia, saveInventario Por Referencia, saveCantidadItems Por Referencia)
 	Definir i Como Entero
 	saveNombre        <- nombre
@@ -1152,11 +939,9 @@ SubProceso guardarPartida(nombre, vida, ataque, oro, nivel, intentos, inv, cant,
 	saveNivel         <- nivel
 	saveIntentos      <- intentos
 	saveCantidadItems <- cant
-// Copiamos el inventario item por item usando un FOR.
 	Para i <- 1 Hasta cant Con Paso 1 Hacer
 		saveInventario[i] <- inv[i]
 	FinPara
-// Marcamos que ya existe un guardado disponible para cargar.
 	saveExiste <- Verdadero
 	
 	Escribir ""
@@ -1166,22 +951,17 @@ SubProceso guardarPartida(nombre, vida, ataque, oro, nivel, intentos, inv, cant,
 	Escribir "    Nivel: ", nivel, "  Intentos: ", intentos
 	Escribir "    Items guardados: ", cant
 FinSubProceso
-
-
-// Recupera los datos de un guardado anterior y los carga en el jugador.
-// Restaura todos los atributos del personaje a los valores guardados.
-// a sus valores base por seguridad.
 SubProceso cargarPartida(saveNombre, saveVida, saveAtaque, saveOro, saveNivel, saveIntentos, saveInventario, saveCantidadItems, nombreJugador Por Referencia, vidaJugador Por Referencia, vidaMaxJugador Por Referencia, ataqueJugador Por Referencia, defensaJugador Por Referencia, oroJugador Por Referencia, nivelJugador Por Referencia, posXJugador Por Referencia, posYJugador Por Referencia, intentosJugador Por Referencia, mazmorrasPasadas Por Referencia, vivoJugador Por Referencia, inventario Por Referencia, cantidadItems Por Referencia)
 	Definir i Como Entero
 	nombreJugador     <- saveNombre
 	vidaJugador       <- saveVida
-	vidaMaxJugador    <- 100           // La vida maxima base siempre es 100 al cargar.
+	vidaMaxJugador    <- 100           
 	ataqueJugador     <- saveAtaque
-	defensaJugador    <- 1             // La defensa base se reinicia al cargar.
+	defensaJugador    <- 1             
 	oroJugador        <- saveOro
 	nivelJugador      <- saveNivel
-	intentosJugador   <- saveIntentos + 1  // Sumamos 1 porque es un nuevo intento.
-	posXJugador       <- 2             // La posicion se reinicia al inicio del nivel.
+	intentosJugador   <- saveIntentos + 1  
+	posXJugador       <- 2             .
 	posYJugador       <- 2
 	mazmorrasPasadas  <- saveNivel - 1
 	vivoJugador       <- Verdadero
@@ -1209,8 +989,6 @@ SubProceso mostrarVictoria(nombre, oro, mazmorras)
 	Escribir "******************************************"
 FinSubProceso
 
-
-// Muestra la pantalla de game over cuando la vida del jugador llega a 0.
 SubProceso mostrarGameOver(nombre, mazmorras, intentos)
 	Borrar Pantalla
 	Escribir "##########################################"
@@ -1227,23 +1005,15 @@ SubProceso mostrarGameOver(nombre, mazmorras, intentos)
 	Escribir "##########################################"
 FinSubProceso
 
-
-// -------------------------
-// SUBPROCESOS CON RETORNO Y CON PARAMETROS (funciones de tipo)
-// -------------------------
-
-// al ataque base del atacante. El dano minimo posible siempre es 1.
 SubProceso dano <- calcularDanio(ataqueBase)
 	Definir variacion Como Entero
-	variacion <- azar(5)  // Genera un numero entre 0 y 4 inclusive.
+	variacion <- azar(5)  
 	dano <- ataqueBase + variacion
 	Si dano < 1 Entonces
 		dano <- 1
 	FinSi
 FinSubProceso
 
-
-// Verifica si un personaje sigue vivo segun su vida actual.
 SubProceso vivo <- estaVivo(vida)
 	Si vida > 0 Entonces
 		vivo <- Verdadero
@@ -1251,19 +1021,11 @@ SubProceso vivo <- estaVivo(vida)
 		vivo <- Falso
 	FinSi
 FinSubProceso
-
-
-// Busca un item especifico dentro del inventario usando busqueda lineal.
-// guarda su posicion y detiene la busqueda usando el flag "encontrado".
-// Si el item no esta en el inventario, devuelve 0 (posicion invalida).
-SubProceso indice <- buscarItem(inv, cant, item)
+}SubProceso indice <- buscarItem(inv, cant, item)
 	Definir i Como Entero
 	Definir encontrado Como Logico
 	indice     <- 0
 	encontrado <- Falso
-// Busqueda lineal: recorremos el vector de izquierda a derecha.
-// Cuando encontramos el item, guardamos su indice y usamos el flag
-// para no seguir comparando en las iteraciones restantes del FOR.
 	Para i <- 1 Hasta cant Con Paso 1 Hacer
 		Si NO encontrado Entonces
 			Si inv[i] = item Entonces
@@ -1273,20 +1035,8 @@ SubProceso indice <- buscarItem(inv, cant, item)
 		FinSi
 	FinPara
 FinSubProceso
-
-
-// -------------------------
-// SUBPROCESOS CON RETORNO SIN PARAMETROS (funciones de tipo simples)
-// -------------------------
-// Estos subprocesos devuelven un valor fijo o calculado sin necesitar
-// ningun dato de entrada. Son utiles para centralizar valores iniciales:
-// si queremos cambiar la vida o el oro de inicio, solo editamos aqui.
-// -------------------------
-
-// Devuelve la cantidad de oro con la que empieza el jugador: un valor
-// aleatorio entre 20 y 30 inclusive.
 SubProceso oro <- generarOroInicial
-	oro <- 20 + azar(11)  // azar(11) genera entre 0 y 10, sumado a 20 da entre 20 y 30.
+	oro <- 20 + azar(11)  
 FinSubProceso
 
 
