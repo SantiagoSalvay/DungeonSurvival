@@ -328,6 +328,8 @@ int iniciarjuego() {
     std::vector<registro_partida> partidas_guardadas;
     std::vector<sf::Text> opciones_carga;
     int item_carga = 0;
+    int scroll_carga = 0; // Indice del primer item visible (para scroll del menu de cargar)
+    const int MAX_PARTIDAS_VISIBLES = 5; // Cuantas partidas mostramos a la vez en pantalla
 
     while (window.isOpen()) {
         while (const std::optional event = window.pollEvent()) {
@@ -374,6 +376,7 @@ int iniciarjuego() {
                             });
                             opciones_carga.clear();
                             item_carga = 0;
+                            scroll_carga = 0;
                             for (int i = 0; i < static_cast<int>(partidas_guardadas.size()); i++) {
                                 const auto& registro = partidas_guardadas[i];
                                 std::string nombre_mostrado = registro.pj.name.empty() ? std::string("Paolo") : registro.pj.name;
@@ -462,10 +465,26 @@ int iniciarjuego() {
                         estado_actual = menu_principal;
                     }
                     else if (key_pressed->code == sf::Keyboard::Key::W || key_pressed->code == sf::Keyboard::Key::Up) {
-                        moverarriba(item_carga, opciones_carga);
+                        // Navegacion arriba con auto-scroll: si el cursor sale del rango visible, ajustamos scroll
+                        if (item_carga - 1 >= 0) {
+                            opciones_carga[item_carga].setFillColor(sf::Color::White);
+                            item_carga--;
+                            opciones_carga[item_carga].setFillColor(sf::Color::Red);
+                            if (item_carga < scroll_carga) {
+                                scroll_carga = item_carga;
+                            }
+                        }
                     }
                     else if (key_pressed->code == sf::Keyboard::Key::S || key_pressed->code == sf::Keyboard::Key::Down) {
-                        moverabajo(item_carga, opciones_carga);
+                        // Navegacion abajo con auto-scroll: si el cursor sale del rango visible, ajustamos scroll
+                        if (item_carga + 1 < static_cast<int>(opciones_carga.size())) {
+                            opciones_carga[item_carga].setFillColor(sf::Color::White);
+                            item_carga++;
+                            opciones_carga[item_carga].setFillColor(sf::Color::Red);
+                            if (item_carga >= scroll_carga + MAX_PARTIDAS_VISIBLES) {
+                                scroll_carga = item_carga - MAX_PARTIDAS_VISIBLES + 1;
+                            }
+                        }
                     }
                     else if (key_pressed->code == sf::Keyboard::Key::Enter) {
                         if (item_carga >= 0 && item_carga < static_cast<int>(partidas_guardadas.size())) {
@@ -2350,9 +2369,53 @@ int iniciarjuego() {
                     window.draw(volver);
                 }
                 else {
-                    for (const auto& opcion : opciones_carga) {
-                        window.draw(opcion);
+                    // Mostramos solo la "ventana" de partidas visibles segun scroll_carga.
+                    // Reposicionamos cada item con un offset relativo al primer visible.
+                    const int total = static_cast<int>(opciones_carga.size());
+                    const int fin = std::min(scroll_carga + MAX_PARTIDAS_VISIBLES, total);
+                    const float y_inicial = 160.0f;
+                    const float separacion = 70.0f;
+                    for (int i = scroll_carga; i < fin; i++) {
+                        opciones_carga[i].setPosition({ window.getSize().x / 2.0f, y_inicial + (i - scroll_carga) * separacion });
+                        window.draw(opciones_carga[i]);
                     }
+
+                    // Indicador de que hay mas partidas hacia arriba
+                    if (scroll_carga > 0) {
+                        sf::Text flecha_arriba(alagard);
+                        flecha_arriba.setString("^  Mas partidas  ^");
+                        flecha_arriba.setCharacterSize(16);
+                        flecha_arriba.setFillColor(sf::Color(180, 180, 180));
+                        auto b = flecha_arriba.getLocalBounds();
+                        flecha_arriba.setOrigin({ b.size.x / 2.0f, 0.0f });
+                        flecha_arriba.setPosition({ window.getSize().x / 2.0f, 130.0f });
+                        window.draw(flecha_arriba);
+                    }
+
+                    // Indicador de que hay mas partidas hacia abajo
+                    if (fin < total) {
+                        sf::Text flecha_abajo(alagard);
+                        flecha_abajo.setString("v  Mas partidas  v");
+                        flecha_abajo.setCharacterSize(16);
+                        flecha_abajo.setFillColor(sf::Color(180, 180, 180));
+                        auto b = flecha_abajo.getLocalBounds();
+                        flecha_abajo.setOrigin({ b.size.x / 2.0f, 0.0f });
+                        flecha_abajo.setPosition({ window.getSize().x / 2.0f, y_inicial + MAX_PARTIDAS_VISIBLES * separacion + 5.0f });
+                        window.draw(flecha_abajo);
+                    }
+
+                    // Pie con el contador y el hint de controles
+                    sf::Text pie(alagard);
+                    pie.setString("Partida " + std::to_string(item_carga + 1) + " / " + std::to_string(total)
+                        + "    -    WASD para navegar, ENTER para cargar, ESC para volver");
+                    pie.setCharacterSize(14);
+                    pie.setFillColor(sf::Color(160, 160, 160));
+                    {
+                        auto b = pie.getLocalBounds();
+                        pie.setOrigin({ b.size.x / 2.0f, 0.0f });
+                    }
+                    pie.setPosition({ window.getSize().x / 2.0f, 760.0f });
+                    window.draw(pie);
                 }
             }
             else if (estado_actual == confirmar_guardado) {
