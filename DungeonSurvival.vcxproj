@@ -157,16 +157,21 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
   <ItemGroup>
     <ClCompile Include="entidades.cpp" />
     <ClCompile Include="funciones.cpp" />
+    <ClCompile Include="Gestion.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="mapaf.cpp" />
     <ClCompile Include="modulo.cpp" />
     <ClCompile Include="Motor.cpp" />
+    <ClCompile Include="Persistencia.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="ErroresMios.h" />
     <ClInclude Include="funciones.h" />
+    <ClInclude Include="Gestion.h" />
     <ClInclude Include="mapa.h" />
     <ClInclude Include="Menu.h" />
     <ClInclude Include="modulo.h" />
+    <ClInclude Include="Persistencia.h" />
     <ClInclude Include="structs.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
