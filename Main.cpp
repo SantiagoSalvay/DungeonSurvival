@@ -1,7 +1,4 @@
-#include <iostream>
-#include <sstream>
-#include "Menu.h"
-#include "structs.h"
+#include "Entrada.h"
 
 int main() {
     return iniciarjuego();

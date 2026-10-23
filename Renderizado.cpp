@@ -1,9 +1,132 @@
 #include "Renderizado.h"
-#include "Menu.h"
+#include <iostream>
+#include <string>
 #include <algorithm>
 #include <cmath>
 #include <cstdint>
 
+// MAPA
+using namespace std;
+
+void dibujarmapa(
+    sf::RenderWindow& ventana,
+    string matriz_fondo[max_filas][max_columnas],
+    string matriz_entidades[max_filas][max_columnas],
+    sf::Texture& tex_suelo,
+    sf::Texture& tex_pared_arriba, sf::Texture& tex_pared_abajo,
+    sf::Texture& tex_pared_izq, sf::Texture& tex_pared_der,
+    sf::Texture& tex_prota, sf::Texture& tex_boss, sf::Texture& tex_enemigo,
+    sf::Texture& tex_mercader, sf::Texture& tex_cofre, sf::Texture& tex_salida) {
+
+    sf::Sprite rectangulo(tex_suelo);
+
+    for (int i = 0; i < max_filas; i++) {
+        for (int j = 0; j < max_columnas; j++) {
+
+            float pos_x = j * 254.f;
+            float pos_y = i * 254.f;
+
+            // Ya no hace falta rotar ni desfasar nada, lo dejamos limpito
+            rectangulo.setOrigin(sf::Vector2f(0.f, 0.f));
+            rectangulo.setRotation(sf::degrees(0.f));
+            rectangulo.setPosition({ pos_x, pos_y });
+
+            if (matriz_fondo[i][j] == "0") {
+                rectangulo.setTexture(tex_suelo);
+                ventana.draw(rectangulo);
+            }
+
+            else if (matriz_fondo[i][j] == "1") {
+                // Paredes LATERALES (Izquierda o Derecha)
+                if (j == 0) {
+                    rectangulo.setTexture(tex_pared_izq);
+                }
+                else {
+                    rectangulo.setTexture(tex_pared_der);
+                }
+                ventana.draw(rectangulo);
+            }
+            else if (matriz_fondo[i][j] == "2") {
+                // Paredes SUPERIOR o INFERIOR (Arriba o Abajo)
+                if (i == 0) {
+                    rectangulo.setTexture(tex_pared_arriba);
+                }
+                else {
+                    rectangulo.setTexture(tex_pared_abajo);
+                }
+                ventana.draw(rectangulo);
+            }
+            else if (matriz_fondo[i][j] == "S") {
+                rectangulo.setTexture(tex_suelo);
+                ventana.draw(rectangulo);
+                rectangulo.setTexture(tex_salida);
+                ventana.draw(rectangulo);
+            }
+
+            if (matriz_entidades[i][j] != "") {
+                if (matriz_entidades[i][j] == "P") {
+                    rectangulo.setTexture(tex_prota);
+                }
+                else if (matriz_entidades[i][j] == "E") {
+                    rectangulo.setTexture(tex_enemigo);
+                }
+                else if (matriz_entidades[i][j] == "M") {
+                    rectangulo.setTexture(tex_mercader);
+                }
+                else if (matriz_entidades[i][j] == "B") {
+                    rectangulo.setTexture(tex_boss);
+                }
+                else if (matriz_entidades[i][j] == "C") {
+                    rectangulo.setTexture(tex_cofre);
+                }
+                ventana.draw(rectangulo);
+            }
+        }
+    }
+}
+
+// MENU
+void inicializarmenu(std::vector<sf::Text>& opciones, const sf::Font& fuente, float ancho, float alto) {
+    std::vector<std::string> textos = { "Jugar", "Cargar Partida", "Controles", "Reglas", "Creditos", "Salir" };
+
+    for (int i = 0; i < textos.size(); i++) {
+        sf::Text texto(fuente);
+        texto.setString(textos[i]);
+        texto.setCharacterSize(30);
+
+        if (i == 0) texto.setFillColor(sf::Color::Red);
+        else texto.setFillColor(sf::Color::White);
+
+        auto bounds = texto.getLocalBounds();
+        texto.setOrigin({ bounds.size.x / 2.0f, 0.0f });
+        texto.setPosition({ ancho / 2.0f, 230.0f + (i * 45.0f) });
+        opciones.push_back(texto);
+    }
+}
+
+void moverarriba(int& item_seleccionado, std::vector<sf::Text>& opciones) {
+    if (item_seleccionado - 1 >= 0) {
+        opciones[item_seleccionado].setFillColor(sf::Color::White);
+        item_seleccionado--;
+        opciones[item_seleccionado].setFillColor(sf::Color::Red);
+    }
+}
+
+void moverabajo(int& item_seleccionado, std::vector<sf::Text>& opciones) {
+    if (item_seleccionado + 1 < opciones.size()) {
+        opciones[item_seleccionado].setFillColor(sf::Color::White);
+        item_seleccionado++;
+        opciones[item_seleccionado].setFillColor(sf::Color::Red);
+    }
+}
+
+void dibujarmenu(sf::RenderWindow& window, const std::vector<sf::Text>& opciones) {
+    for (const auto& texto : opciones) {
+        window.draw(texto);
+    }
+}
+
+// PANTALLAS
 void cargarRecursosVisuales(RecursosVisuales& r, sf::RenderWindow& window) {
     (void)r.alagard.openFromFile("medieval.ttf");
 
@@ -830,7 +953,7 @@ void dibujarBatalla(sf::RenderWindow& window, const RecursosVisuales& recursos, 
     }
     window.draw(sprite_fondo_pelea);
 
-    // === CINEMATICA EPICA AL ENFRENTAR AL BOSS ===
+    // CINEMATICA EPICA AL ENFRENTAR AL BOSS
     if (batalla.fase == fase_batalla::cinematica_boss) {
         const float PI = 3.14159265f;
         float t = batalla.reloj_anim.getElapsedTime().asSeconds();
@@ -1053,7 +1176,7 @@ void dibujarBatalla(sf::RenderWindow& window, const RecursosVisuales& recursos, 
     nombre_en.setPosition({ 520.f, 75.f });
     window.draw(nombre_en);
 
-    // === CINEMATICA DE CURACION DEL BOSS (overlay sobre la batalla) ===
+    // CINEMATICA DE CURACION DEL BOSS (overlay sobre la batalla)
     if (batalla.fase == fase_batalla::cinematica_curacion_boss) {
         const float PI = 3.14159265f;
         float tc = batalla.reloj_anim.getElapsedTime().asSeconds();
@@ -1123,7 +1246,7 @@ void dibujarBatalla(sf::RenderWindow& window, const RecursosVisuales& recursos, 
         window.draw(sub_cura);
     }
 
-    // === CINEMATICA DE ATAQUE ESPECIAL DEL BOSS (overlay sobre la batalla) ===
+    // CINEMATICA DE ATAQUE ESPECIAL DEL BOSS (overlay sobre la batalla)
     if (batalla.fase == fase_batalla::cinematica_ataque_especial_boss) {
         const float PI = 3.14159265f;
         float ta = batalla.reloj_anim.getElapsedTime().asSeconds();
@@ -1199,7 +1322,7 @@ void dibujarBatalla(sf::RenderWindow& window, const RecursosVisuales& recursos, 
         window.draw(sub_atk);
     }
 
-    // === CINEMATICA DE GOLPE DEVASTADOR (overlay sobre la batalla) ===
+    // CINEMATICA DE GOLPE DEVASTADOR (overlay sobre la batalla)
     if (batalla.fase == fase_batalla::cinematica_golpe_devastador) {
         const float PI = 3.14159265f;
         float td = batalla.reloj_anim.getElapsedTime().asSeconds();
@@ -1346,7 +1469,7 @@ void dibujarBatalla(sf::RenderWindow& window, const RecursosVisuales& recursos, 
         window.draw(texto_resultado);
     }
 
-    // === CARTEL GRANDE DE VICTORIA FINAL (TRAS VENCER AL BOSS) ===
+    // CARTEL GRANDE DE VICTORIA FINAL (TRAS VENCER AL BOSS)
     if (batalla.fase == fase_batalla::victoria_final) {
         const float PI = 3.14159265f;
         float t_v = batalla.reloj_anim.getElapsedTime().asSeconds();
@@ -1469,7 +1592,7 @@ void dibujarBatalla(sf::RenderWindow& window, const RecursosVisuales& recursos, 
         }
     }
 
-    // === CARTEL CON CINEMATICA DE DERROTA ===
+    // CARTEL CON CINEMATICA DE DERROTA
     if (batalla.fase == fase_batalla::perdida) {
         float t_d = batalla.reloj_anim.getElapsedTime().asSeconds();
 
@@ -1583,3 +1706,23 @@ void dibujarBatalla(sf::RenderWindow& window, const RecursosVisuales& recursos, 
         }
     }
 }
+
+// NIVEL: CARGA Y DIBUJO
+// --- Responsabilidad 3: Mapas y dibujo ---
+void cargarYDibujarNivel(
+	int numero_nivel,
+	string matriz_fondo[max_filas][max_columnas],
+	string matriz_entidades[max_filas][max_columnas],
+	sf::RenderWindow& ventana,
+	sf::Texture& tex_suelo,
+	sf::Texture& tex_pared_arriba, sf::Texture& tex_pared_abajo,
+	sf::Texture& tex_pared_izq, sf::Texture& tex_pared_der,
+	sf::Texture& tex_prota, sf::Texture& tex_boss, sf::Texture& tex_enemigo,
+	sf::Texture& tex_mercader, sf::Texture& tex_cofre, sf::Texture& tex_salida
+) {
+	cargarnivel(numero_nivel, matriz_fondo, matriz_entidades);
+	dibujarmapa(ventana, matriz_fondo, matriz_entidades,
+		tex_suelo, tex_pared_arriba, tex_pared_abajo, tex_pared_izq, tex_pared_der,
+		tex_prota, tex_boss, tex_enemigo, tex_mercader, tex_cofre, tex_salida);
+}
+

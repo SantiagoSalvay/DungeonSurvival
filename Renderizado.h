@@ -1,11 +1,32 @@
 #pragma once
 #include <SFML/Graphics.hpp>
 #include <vector>
-#include "structs.h"
-#include "mapa.h"
-#include "funciones.h"
-#include "EstadoJuego.h"
+#include <string>
+#include "Logica.h"
 
+// MAPA
+
+// Texturas Mapa
+void dibujarmapa(
+    sf::RenderWindow& ventana,
+    string matriz_fondo[max_filas][max_columnas],
+    string matriz_entidades[max_filas][max_columnas],
+    sf::Texture& tex_suelo,
+    sf::Texture& tex_pared_arriba, sf::Texture& tex_pared_abajo,
+    sf::Texture& tex_pared_izq, sf::Texture& tex_pared_der,
+    sf::Texture& tex_prota, sf::Texture& tex_boss, sf::Texture& tex_enemigo,
+    sf::Texture& tex_mercader, sf::Texture& tex_cofre, sf::Texture& tex_salida
+);
+
+// MENU
+const int max_items = 6;
+
+void inicializarmenu(std::vector<sf::Text>& opciones, const sf::Font& fuente, float width, float height);
+void moverarriba(int& item_seleccionado, std::vector<sf::Text>& opciones);
+void moverabajo(int& item_seleccionado, std::vector<sf::Text>& opciones);
+void dibujarmenu(sf::RenderWindow& window, const std::vector<sf::Text>& opciones);
+
+// PANTALLAS
 // Fuente, texturas y elementos visuales que se cargan/arman una sola vez al arrancar el juego.
 struct RecursosVisuales {
     sf::Font alagard;
@@ -60,5 +81,18 @@ void dibujarConfirmarGuardado(sf::RenderWindow& window, const RecursosVisuales& 
 void dibujarAvisoGuardado(sf::RenderWindow& window, const RecursosVisuales& recursos);
 void dibujarInventario(sf::RenderWindow& window, const RecursosVisuales& recursos, const personaje& paolo, EstadoUI& ui);
 void dibujarTienda(sf::RenderWindow& window, const RecursosVisuales& recursos, const personaje& paolo, const mercader& vendedor, const EstadoUI& ui);
-// Nota: tambien avanza la cinematica inicial del boss cuando termina su tiempo (igual que el codigo original).
+// Nota: tambien avanza la cinematica inicial del boss cuando termina su tiempo.
 void dibujarBatalla(sf::RenderWindow& window, const RecursosVisuales& recursos, EstadoBatalla& batalla, const personaje& paolo);
+
+// --- Responsabilidad 3: Mapas y dibujo ---
+void cargarYDibujarNivel(
+	int numero_nivel,
+	string matriz_fondo[max_filas][max_columnas],
+	string matriz_entidades[max_filas][max_columnas],
+	sf::RenderWindow& ventana,
+	sf::Texture& tex_suelo,
+	sf::Texture& tex_pared_arriba, sf::Texture& tex_pared_abajo,
+	sf::Texture& tex_pared_izq, sf::Texture& tex_pared_der,
+	sf::Texture& tex_prota, sf::Texture& tex_boss, sf::Texture& tex_enemigo,
+	sf::Texture& tex_mercader, sf::Texture& tex_cofre, sf::Texture& tex_salida
+);

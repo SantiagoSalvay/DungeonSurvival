@@ -1,12 +1,9 @@
 #pragma once
 #include <cstdint>
 #include <SFML/Window.hpp>
-#include "structs.h"
-#include "mapa.h"
-#include "funciones.h"
-#include "EstadoJuego.h"
 #include "Renderizado.h"
 
+// TECLADO
 // Captura de texto mientras se esta escribiendo el nombre del personaje (pantalla pedir_nombre).
 void manejarTextoNombre(std::string& nombre_input, std::uint32_t code);
 
@@ -41,7 +38,7 @@ void manejarTeclaCargar(
     sf::Keyboard::Key tecla
 );
 
-// Devuelve true si, igual que el codigo original, hay que dejar de procesar mas eventos
+// Devuelve true si hay que dejar de procesar mas eventos
 // encolados en este mismo frame (ocurre justo al confirmar el guardado).
 bool manejarTeclaConfirmarGuardado(
     EstadoUI& ui,
@@ -69,3 +66,6 @@ void manejarTeclaJugando(
 void manejarTeclaInventario(EstadoUI& ui, personaje& paolo, estado_pantalla& estado_actual, sf::Keyboard::Key tecla);
 
 void manejarTeclaTienda(EstadoUI& ui, personaje& paolo, const mercader& vendedor, estado_pantalla& estado_actual, sf::Keyboard::Key tecla);
+
+// BUCLE PRINCIPAL DEL JUEGO
+int iniciarjuego();
