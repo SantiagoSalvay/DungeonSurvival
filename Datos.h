@@ -51,7 +51,13 @@ const int max_columnas = 10;
 // Carga la matriz de fondo y de entidades del nivel pedido
 void cargarnivel(int numero_nivel, string fondo_destino[max_filas][max_columnas], string entidades_destino[max_filas][max_columnas]);
 
-// REGISTRO DE UNA PARTIDA GUARDADA (las funciones estan en Persistencia.h)
+// MANEJO DE ERRORES
+// En vez de una jerarquia de excepciones, los errores se senalizan igual que
+// en el resto del archivo: con un valor de retorno bool (ver eliminarPartidaPorIndice,
+// cargarPartidaPorIndice mas abajo) o con un sentinel invalido como -1
+// (igual que enemigo_pos_x/enemigo_pos_y en EstadoBatalla).
+
+// PARTIDAS GUARDADAS
 struct registro_partida {
 	personaje pj;
 	string entidades[max_filas][max_columnas];
@@ -145,3 +151,21 @@ struct EstadoUI {
     int cursor_inventario = 0;
     bool en_modo_compra = true;
 };
+
+// PERSISTENCIA ALTERNATIVA CON EXCEPCIONES
+namespace persistencia {
+
+
+struct partidaGuardada {
+	personaje pj;
+	string entidades[max_filas][max_columnas];
+	long long ultimo_guardado = 0;
+};
+
+std::vector<partidaGuardada> listarPartidas();
+bool guardarPartidaPersistente(const personaje& pj, string entidades[max_filas][max_columnas]);
+bool cargarUltimaPartida(personaje& pj, string entidades[max_filas][max_columnas]);
+bool cargarPartidaPorIndice(personaje& pj, int indice, string entidades[max_filas][max_columnas]);
+bool eliminarPartidaPorNombre(string nombre);
+
+}
