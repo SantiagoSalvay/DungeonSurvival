@@ -4,6 +4,8 @@
 #include <vector>
 #include <SFML/Window.hpp>
 #include "Datos.h"
+#include "Persistencia.h"
+#include "Gestion.h"
 
 // REGLAS DEL JUEGO
 void protagonista(personaje& pj);
@@ -18,17 +20,9 @@ void completar(string v[], int tam, int pos, string c[], int& k);
 int fusionar(string a[], int n, string b[], int m, string c[]);
 int obtenerprecioventa(string nombre_item);
 int buscaritem(string v[50], int n, string x);
-void ordenarburbuja(string v[50], int n);
-void ordenarmercader(string catalogo[6], int precios[6], int n);
 
 int obtenerataque(string arma_nombre);
 int obtenerdefensa(string armadura_nombre);
-
-// BUSQUEDAS Y ORDENAMIENTOS
-void ordenarBurbuja(string v[], int n);
-void ordenarParalelo(string claves[], int valores[], int n);
-int busquedaBinaria(const string v[], int n, const string& x);
-int busquedaBinariaParalelo(const string claves[], int n, const string& x);
 
 // BATALLA POR TURNOS
 // Prepara el EstadoBatalla para enfrentar al enemigo ubicado en (pos_x, pos_y) del mapa.

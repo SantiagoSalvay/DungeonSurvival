@@ -207,34 +207,6 @@ int buscaritem(string v[], int n, string x) {
 	return posicion;
 }
 
-void ordenarburbuja(string v[], int n) {
-	for (int i = 0; i < n - 1; i++) {
-		for (int j = i + 1; j < n; j++) {
-			if (v[i] > v[j]) {
-				string aux = v[i];
-				v[i] = v[j];
-				v[j] = aux;
-			}
-		}
-	}
-}
-
-void ordenarmercader(string catalogo[], int precios[], int n) {
-	for (int i = 0; i < n - 1; i++) {
-		for (int j = i + 1; j < n; j++) {
-			if (catalogo[i] > catalogo[j]) {
-				string aux1 = catalogo[i];
-				catalogo[i] = catalogo[j];
-				catalogo[j] = aux1;
-
-				int aux2 = precios[i];
-				precios[i] = precios[j];
-				precios[j] = aux2;
-			}
-		}
-	}
-}
-
 int obtenerataque(string arma_nombre) {
 	if (arma_nombre == "Palo") return 2;
 	if (arma_nombre == "Daga Rota") return 4;

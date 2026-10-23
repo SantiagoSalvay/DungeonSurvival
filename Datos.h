@@ -64,16 +64,6 @@ struct registro_partida {
 	long long ultimo_guardado = 0;
 };
 
-std::vector<registro_partida> obtenerPartidas();
-void guardarPartida(const personaje& pj, string matriz_entidades[max_filas][max_columnas]);
-bool cargarPartida(personaje& pj, string matriz_entidades[max_filas][max_columnas]);
-bool cargarPartidaPorIndice(personaje& pj, int indice, string matriz_entidades[max_filas][max_columnas]);
-bool cargarPartidaPorIndice(personaje& pj, int indice);
-bool eliminarPartidaPorIndice(int indice);
-bool eliminarPartidaPorNombre(const std::string& nombre);
-
-std::string formatearFecha(long long timestamp);
-
 // ESTADO DEL JUEGO
 // Pantallas posibles del juego
 enum estado_pantalla { menu_principal, jugando, cargar, controles, reglas, creditos, en_tienda, en_batalla, en_inventario, confirmar_guardado, aviso_guardado, pedir_nombre, intro_historia };

@@ -157,6 +157,8 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
   <ItemGroup>
     <ClCompile Include="Datos.cpp" />
     <ClCompile Include="Logica.cpp" />
+    <ClCompile Include="Persistencia.cpp" />
+    <ClCompile Include="Gestion.cpp" />
     <ClCompile Include="Renderizado.cpp" />
     <ClCompile Include="Entrada.cpp" />
     <ClCompile Include="Main.cpp" />
@@ -164,6 +166,9 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
   <ItemGroup>
     <ClInclude Include="Datos.h" />
     <ClInclude Include="Logica.h" />
+    <ClInclude Include="Persistencia.h" />
+    <ClInclude Include="ErroresMios.h" />
+    <ClInclude Include="Gestion.h" />
     <ClInclude Include="Renderizado.h" />
     <ClInclude Include="Entrada.h" />
   </ItemGroup>
