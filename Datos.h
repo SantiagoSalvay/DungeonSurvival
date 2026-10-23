@@ -1,6 +1,5 @@
 #pragma once
 #include <string>
-#include <exception>
 #include <SFML/Graphics.hpp>
 #include <vector>
 
@@ -52,51 +51,12 @@ const int max_columnas = 10;
 // Carga la matriz de fondo y de entidades del nivel pedido
 void cargarnivel(int numero_nivel, string fondo_destino[max_filas][max_columnas], string entidades_destino[max_filas][max_columnas]);
 
-// EXCEPCIONES
-class ErrorDungeon : public std::exception {
-public:
-	explicit ErrorDungeon(const std::string& mensaje) : mensaje(mensaje) {}
-	const char* what() const noexcept override { return mensaje.c_str(); }
-private:
-	std::string mensaje;
-};
-
-class ErrorArchivo : public ErrorDungeon {
-public:
-	explicit ErrorArchivo(const std::string& mensaje) : ErrorDungeon(mensaje) {}
-};
-
-class ErrorPartidaNoEncontrada : public ErrorDungeon {
-public:
-	explicit ErrorPartidaNoEncontrada(const std::string& mensaje) : ErrorDungeon(mensaje) {}
-};
-
-class ErrorIndiceInvalido : public ErrorDungeon {
-public:
-	explicit ErrorIndiceInvalido(const std::string& mensaje) : ErrorDungeon(mensaje) {}
-};
-
-class ErrorItemNoEncontrado : public ErrorDungeon {
-public:
-	explicit ErrorItemNoEncontrado(const std::string& mensaje) : ErrorDungeon(mensaje) {}
-};
-
-// PARTIDAS GUARDADAS
+// REGISTRO DE UNA PARTIDA GUARDADA (las funciones estan en Persistencia.h)
 struct registro_partida {
 	personaje pj;
 	string entidades[max_filas][max_columnas];
 	long long ultimo_guardado = 0;
 };
-
-std::vector<registro_partida> obtenerPartidas();
-void guardarPartida(const personaje& pj, string matriz_entidades[max_filas][max_columnas]);
-bool cargarPartida(personaje& pj, string matriz_entidades[max_filas][max_columnas]);
-bool cargarPartidaPorIndice(personaje& pj, int indice, string matriz_entidades[max_filas][max_columnas]);
-bool cargarPartidaPorIndice(personaje& pj, int indice);
-bool eliminarPartidaPorIndice(int indice);
-bool eliminarPartidaPorNombre(const std::string& nombre);
-
-std::string formatearFecha(long long timestamp);
 
 // ESTADO DEL JUEGO
 // Pantallas posibles del juego
@@ -184,21 +144,3 @@ struct EstadoUI {
     int cursor_inventario = 0;
     bool en_modo_compra = true;
 };
-
-// PERSISTENCIA ALTERNATIVA CON EXCEPCIONES
-namespace persistencia {
-
-
-struct partidaGuardada {
-	personaje pj;
-	string entidades[max_filas][max_columnas];
-	long long ultimo_guardado = 0;
-};
-
-std::vector<partidaGuardada> listarPartidas();
-void guardarPartidaPersistente(const personaje& pj, string entidades[max_filas][max_columnas]);
-void cargarUltimaPartida(personaje& pj, string entidades[max_filas][max_columnas]);
-void cargarPartidaPorIndice(personaje& pj, int indice, string entidades[max_filas][max_columnas]);
-void eliminarPartidaPorNombre(string nombre);
-
-}
