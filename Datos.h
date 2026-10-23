@@ -1,6 +1,5 @@
 #pragma once
 #include <string>
-#include <exception>
 #include <SFML/Graphics.hpp>
 #include <vector>
 
@@ -52,34 +51,11 @@ const int max_columnas = 10;
 // Carga la matriz de fondo y de entidades del nivel pedido
 void cargarnivel(int numero_nivel, string fondo_destino[max_filas][max_columnas], string entidades_destino[max_filas][max_columnas]);
 
-// EXCEPCIONES
-class ErrorDungeon : public std::exception {
-public:
-	explicit ErrorDungeon(const std::string& mensaje) : mensaje(mensaje) {}
-	const char* what() const noexcept override { return mensaje.c_str(); }
-private:
-	std::string mensaje;
-};
-
-class ErrorArchivo : public ErrorDungeon {
-public:
-	explicit ErrorArchivo(const std::string& mensaje) : ErrorDungeon(mensaje) {}
-};
-
-class ErrorPartidaNoEncontrada : public ErrorDungeon {
-public:
-	explicit ErrorPartidaNoEncontrada(const std::string& mensaje) : ErrorDungeon(mensaje) {}
-};
-
-class ErrorIndiceInvalido : public ErrorDungeon {
-public:
-	explicit ErrorIndiceInvalido(const std::string& mensaje) : ErrorDungeon(mensaje) {}
-};
-
-class ErrorItemNoEncontrado : public ErrorDungeon {
-public:
-	explicit ErrorItemNoEncontrado(const std::string& mensaje) : ErrorDungeon(mensaje) {}
-};
+// MANEJO DE ERRORES
+// En vez de una jerarquia de excepciones, los errores se senalizan igual que
+// en el resto del archivo: con un valor de retorno bool (ver eliminarPartidaPorIndice,
+// cargarPartidaPorIndice mas abajo) o con un sentinel invalido como -1
+// (igual que enemigo_pos_x/enemigo_pos_y en EstadoBatalla).
 
 // PARTIDAS GUARDADAS
 struct registro_partida {
@@ -196,9 +172,9 @@ struct partidaGuardada {
 };
 
 std::vector<partidaGuardada> listarPartidas();
-void guardarPartidaPersistente(const personaje& pj, string entidades[max_filas][max_columnas]);
-void cargarUltimaPartida(personaje& pj, string entidades[max_filas][max_columnas]);
-void cargarPartidaPorIndice(personaje& pj, int indice, string entidades[max_filas][max_columnas]);
-void eliminarPartidaPorNombre(string nombre);
+bool guardarPartidaPersistente(const personaje& pj, string entidades[max_filas][max_columnas]);
+bool cargarUltimaPartida(personaje& pj, string entidades[max_filas][max_columnas]);
+bool cargarPartidaPorIndice(personaje& pj, int indice, string entidades[max_filas][max_columnas]);
+bool eliminarPartidaPorNombre(string nombre);
 
 }

@@ -277,6 +277,8 @@ void ordenarParalelo(string claves[], int valores[], int n) {
 	}
 }
 
+// Devuelve -1 si no encuentra el item, igual que el sentinel invalido
+// que ya se usa en EstadoBatalla (enemigo_pos_x/enemigo_pos_y = -1).
 int busquedaBinaria(const string v[], int n, const string& x) {
 	int izq = 0, der = n - 1;
 	while (izq <= der) {
@@ -285,7 +287,7 @@ int busquedaBinaria(const string v[], int n, const string& x) {
 		if (v[medio] < x) izq = medio + 1;
 		else der = medio - 1;
 	}
-	throw ErrorItemNoEncontrado("No se encontro el item: " + x);
+	return -1;
 }
 
 int busquedaBinariaParalelo(const string claves[], int n, const string& x) {
@@ -296,7 +298,7 @@ int busquedaBinariaParalelo(const string claves[], int n, const string& x) {
 		if (claves[medio] < x) izq = medio + 1;
 		else der = medio - 1;
 	}
-	throw ErrorItemNoEncontrado("No se encontro la clave: " + x);
+	return -1;
 }
 
 // BATALLA POR TURNOS

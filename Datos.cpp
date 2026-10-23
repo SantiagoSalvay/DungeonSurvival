@@ -372,14 +372,15 @@ namespace {
 		}
 	}
 
-	void reescribirArchivo(std::vector<partidaGuardada>& partidas) {
+	bool reescribirArchivo(std::vector<partidaGuardada>& partidas) {
 		std::ofstream salida(archivo_persistencia, std::ios::trunc);
 		if (!salida.is_open()) {
-			throw ErrorArchivo("no pude abrir partidas.txt para guardar");
+			return false;
 		}
 		for (int i = 0; i < static_cast<int>(partidas.size()); i++) {
 			escribirUnaPartida(salida, partidas[i]);
 		}
+		return true;
 	}
 }
 
@@ -397,7 +398,7 @@ std::vector<partidaGuardada> listarPartidas() {
 	return partidas;
 }
 
-void guardarPartidaPersistente(const personaje& pj, string entidades[max_filas][max_columnas]) {
+bool guardarPartidaPersistente(const personaje& pj, string entidades[max_filas][max_columnas]) {
 	std::vector<partidaGuardada> partidas = listarPartidas();
 	bool actualizado = false;
 
@@ -427,13 +428,13 @@ void guardarPartidaPersistente(const personaje& pj, string entidades[max_filas][
 		partidas.push_back(nueva);
 	}
 
-	reescribirArchivo(partidas);
+	return reescribirArchivo(partidas);
 }
 
-void cargarUltimaPartida(personaje& pj, string entidades[max_filas][max_columnas]) {
+bool cargarUltimaPartida(personaje& pj, string entidades[max_filas][max_columnas]) {
 	std::vector<partidaGuardada> partidas = listarPartidas();
 	if (partidas.size() == 0) {
-		throw ErrorPartidaNoEncontrada("no hay ninguna partida guardada");
+		return false;
 	}
 
 	int mejor = 0;
@@ -449,12 +450,13 @@ void cargarUltimaPartida(personaje& pj, string entidades[max_filas][max_columnas
 			entidades[f][c] = partidas[mejor].entidades[f][c];
 		}
 	}
+	return true;
 }
 
-void cargarPartidaPorIndice(personaje& pj, int indice, string entidades[max_filas][max_columnas]) {
+bool cargarPartidaPorIndice(personaje& pj, int indice, string entidades[max_filas][max_columnas]) {
 	std::vector<partidaGuardada> partidas = listarPartidas();
 	if (indice < 0 || indice >= static_cast<int>(partidas.size())) {
-		throw ErrorIndiceInvalido("ese indice de partida no existe");
+		return false;
 	}
 
 	pj = partidas[indice].pj;
@@ -463,11 +465,12 @@ void cargarPartidaPorIndice(personaje& pj, int indice, string entidades[max_fila
 			entidades[f][c] = partidas[indice].entidades[f][c];
 		}
 	}
+	return true;
 }
 
-void eliminarPartidaPorNombre(string nombre) {
+bool eliminarPartidaPorNombre(string nombre) {
 	if (nombre == "") {
-		throw ErrorPartidaNoEncontrada("el nombre vino vacio");
+		return false;
 	}
 
 	std::vector<partidaGuardada> partidas = listarPartidas();
@@ -480,10 +483,10 @@ void eliminarPartidaPorNombre(string nombre) {
 	}
 
 	if (!elimino) {
-		throw ErrorPartidaNoEncontrada("no encontre una partida con ese nombre");
+		return false;
 	}
 
-	reescribirArchivo(partidas);
+	return reescribirArchivo(partidas);
 }
 
 }

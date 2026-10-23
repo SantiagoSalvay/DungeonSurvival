@@ -1,19 +1,17 @@
 #PARTIDA
 Paolo
-1780883151
-32
-77
+1792727000
+10
+100
 
 
 8
 0
+1
 2
-5
-5
 4
+2
 Palo
-Pocion Chica
-Pocion Chica
 Pocion Chica
 #ENTIDADES
 
@@ -49,20 +47,7 @@ Pocion Chica
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+C
 
 
 
@@ -74,7 +59,17 @@ Pocion Chica
 P
 
 
-E
+
+
+
+
+
+
+
+
+
+
+M
 
 
 
@@ -98,7 +93,10 @@ E
 
 
 
-C
+
+
+
+
 
 
 
