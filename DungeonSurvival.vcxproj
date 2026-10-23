@@ -158,6 +158,7 @@ sfml-system-d.lib;%(AdditionalDependencies)</AdditionalDependencies>
     <ClCompile Include="Datos.cpp" />
     <ClCompile Include="Logica.cpp" />
     <ClCompile Include="Persistencia.cpp" />
+    <ClCompile Include="ErroresMios.cpp" />
     <ClCompile Include="Gestion.cpp" />
     <ClCompile Include="Renderizado.cpp" />
     <ClCompile Include="Entrada.cpp" />

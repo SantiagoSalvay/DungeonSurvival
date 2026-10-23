@@ -49,7 +49,7 @@ void manejarTeclaMenuPrincipal(
             ui.item_carga = 0;
             ui.scroll_carga = 0;
             for (int i = 0; i < static_cast<int>(ui.partidas_guardadas.size()); i++) {
-                const auto& registro = ui.partidas_guardadas[i];
+                const registro_partida& registro = ui.partidas_guardadas[i];
                 std::string nombre_mostrado = registro.pj.name.empty() ? std::string("Paolo") : registro.pj.name;
                 std::ostringstream linea;
                 linea << (i + 1) << ") " << nombre_mostrado

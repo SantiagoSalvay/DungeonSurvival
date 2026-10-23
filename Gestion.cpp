@@ -35,18 +35,6 @@ void ordenarmercader(string catalogo[], int precios[], int n) {
 
 
 // ORDENAMIENTOS PARALELOS Y BUSQUEDAS
-void ordenarBurbuja(string v[], int n) {
-	for (int i = 0; i < n - 1; i++) {
-		for (int j = i + 1; j < n; j++) {
-			if (v[i] > v[j]) {
-				string aux = v[i];
-				v[i] = v[j];
-				v[j] = aux;
-			}
-		}
-	}
-}
-
 void ordenarParalelo(string claves[], int valores[], int n) {
 	for (int i = 0; i < n - 1; i++) {
 		for (int j = i + 1; j < n; j++) {
@@ -71,7 +59,7 @@ int busquedaBinaria(const string v[], int n, const string& x) {
 		if (v[medio] < x) izq = medio + 1;
 		else der = medio - 1;
 	}
-	throw ErrorItemNoEncontrado("No se encontro el item: " + x);
+	throw errores::itemNoEncontrado(x);
 }
 
 int busquedaBinariaParalelo(const string claves[], int n, const string& x) {
@@ -82,5 +70,5 @@ int busquedaBinariaParalelo(const string claves[], int n, const string& x) {
 		if (claves[medio] < x) izq = medio + 1;
 		else der = medio - 1;
 	}
-	throw ErrorItemNoEncontrado("No se encontro la clave: " + x);
+	throw errores::itemNoEncontrado("clave " + x);
 }

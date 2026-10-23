@@ -8,7 +8,7 @@
 #include <fstream>
 
 // PARTIDAS GUARDADAS
-namespace {
+namespace ayudas_simples {
 	const char* archivo_partidas = "partidas.txt";
 
 	bool leerRegistro(std::istream& input, registro_partida& registro, string entidades[max_filas][max_columnas]) {
@@ -78,6 +78,7 @@ namespace {
 		return static_cast<long long>(std::time(nullptr));
 	}
 }
+using namespace ayudas_simples;
 
 std::vector<registro_partida> obtenerPartidas() {
 	std::vector<registro_partida> partidas;
@@ -98,7 +99,7 @@ std::vector<registro_partida> obtenerPartidas() {
 void guardarPartida(const personaje& pj, string matriz_entidades[max_filas][max_columnas]) {
 	std::vector<registro_partida> partidas = obtenerPartidas();
 	bool actualizado = false;
-	for (auto& registro : partidas) {
+	for (registro_partida& registro : partidas) {
 		if (registro.pj.name == pj.name) {
 			registro.pj = pj;
 			for (int i = 0; i < max_filas; i++) {
@@ -126,7 +127,7 @@ void guardarPartida(const personaje& pj, string matriz_entidades[max_filas][max_
 	if (!archivo.is_open()) {
 		return;
 	}
-	for (const auto& registro : partidas) {
+	for (const registro_partida& registro : partidas) {
 		escribirregistro(archivo, registro, registro.entidades);
 	}
 }
@@ -175,7 +176,7 @@ bool eliminarPartidaPorIndice(int indice) {
 	if (!archivo.is_open()) {
 		return false;
 	}
-	for (const auto& registro : partidas) {
+	for (const registro_partida& registro : partidas) {
 		escribirregistro(archivo, registro, registro.entidades);
 	}
 	return true;
@@ -202,7 +203,7 @@ bool eliminarPartidaPorNombre(const std::string& nombre) {
 	if (!archivo.is_open()) {
 		return false;
 	}
-	for (const auto& registro : partidas) {
+	for (const registro_partida& registro : partidas) {
 		escribirregistro(archivo, registro, registro.entidades);
 	}
 	return true;
@@ -228,7 +229,7 @@ namespace persistencia {
 
 
 
-namespace {
+namespace ayudas_persistencia {
 	const char* archivo_persistencia = "partidas.txt";
 
 	long long tiempoActual() {
@@ -318,13 +319,14 @@ namespace {
 	void reescribirArchivo(std::vector<partidaGuardada>& partidas) {
 		std::ofstream salida(archivo_persistencia, std::ios::trunc);
 		if (!salida.is_open()) {
-			throw ErrorArchivo("no pude abrir partidas.txt para guardar");
+			throw errores::archivo("no pude abrir partidas.txt para guardar");
 		}
 		for (int i = 0; i < static_cast<int>(partidas.size()); i++) {
 			escribirUnaPartida(salida, partidas[i]);
 		}
 	}
 }
+using namespace ayudas_persistencia;
 
 std::vector<partidaGuardada> listarPartidas() {
 	std::vector<partidaGuardada> partidas;
@@ -376,7 +378,7 @@ void guardarPartidaPersistente(const personaje& pj, string entidades[max_filas][
 void cargarUltimaPartida(personaje& pj, string entidades[max_filas][max_columnas]) {
 	std::vector<partidaGuardada> partidas = listarPartidas();
 	if (partidas.size() == 0) {
-		throw ErrorPartidaNoEncontrada("no hay ninguna partida guardada");
+		throw errores::partidaNoEncontrada("no hay ninguna partida guardada");
 	}
 
 	int mejor = 0;
@@ -397,7 +399,7 @@ void cargarUltimaPartida(personaje& pj, string entidades[max_filas][max_columnas
 void cargarPartidaPorIndice(personaje& pj, int indice, string entidades[max_filas][max_columnas]) {
 	std::vector<partidaGuardada> partidas = listarPartidas();
 	if (indice < 0 || indice >= static_cast<int>(partidas.size())) {
-		throw ErrorIndiceInvalido("ese indice de partida no existe");
+		throw errores::indiceInvalido("ese indice de partida no existe");
 	}
 
 	pj = partidas[indice].pj;
@@ -410,7 +412,7 @@ void cargarPartidaPorIndice(personaje& pj, int indice, string entidades[max_fila
 
 void eliminarPartidaPorNombre(string nombre) {
 	if (nombre == "") {
-		throw ErrorPartidaNoEncontrada("el nombre vino vacio");
+		throw errores::partidaNoEncontrada("el nombre vino vacio");
 	}
 
 	std::vector<partidaGuardada> partidas = listarPartidas();
@@ -423,7 +425,7 @@ void eliminarPartidaPorNombre(string nombre) {
 	}
 
 	if (!elimino) {
-		throw ErrorPartidaNoEncontrada("no encontre una partida con ese nombre");
+		throw errores::partidaNoEncontrada("no encontre una partida con ese nombre");
 	}
 
 	reescribirArchivo(partidas);

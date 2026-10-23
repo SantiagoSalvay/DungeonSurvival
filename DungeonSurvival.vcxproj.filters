@@ -27,6 +27,9 @@
     <ClCompile Include="Persistencia.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
+    <ClCompile Include="ErroresMios.cpp">
+      <Filter>Archivos de origen</Filter>
+    </ClCompile>
     <ClCompile Include="Gestion.cpp">
       <Filter>Archivos de origen</Filter>
     </ClCompile>
