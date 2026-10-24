@@ -225,20 +225,24 @@ El juego carga estos archivos por **ruta relativa** desde el directorio de traba
 
 ```
 DungeonSurvival/
-├── Main.cpp                    ← Entry point: llama a iniciarjuego()
-├── Motor.cpp                   ← Bucle principal, estados, render y eventos (≈3700 líneas)
-├── Menu.h                      ← Declaración de iniciarjuego()
-├── funciones.cpp / funciones.h ← Lógica: movimiento, interacción, save/load, inventario
-├── mapaf.cpp / mapa.h          ← Carga y dibujado del mapa (matrices)
-├── entidades.cpp               ← Inicialización de personajes/enemigos
-├── structs.h                   ← personaje, enemigo, mercader, cofre, registro_partida
-├── partidas.txt                ← Guardado persistente
-├── DungeonSurvival.slnx        ← Solución de Visual Studio
-├── DungeonSurvival.vcxproj     ← Proyecto C++
-├── *.png / *.jpg               ← Sprites y fondos
-├── *.ttf                       ← Fuentes
-└── sfml-*-3.dll                ← Runtimes de SFML 3.1.0
+├── Main.cpp                      ← Punto de entrada: llama a iniciarjuego()
+├── Datos.h / Datos.cpp           ← Structs (personaje, enemigo, mercader, cofre, registro_partida), enums de estado y carga de niveles
+├── Entrada.h / Entrada.cpp       ← Teclado por pantalla y bucle principal (iniciarjuego)
+├── Logica.h / Logica.cpp         ← Reglas: movimiento, interacción, batalla por turnos y las 5 responsabilidades
+│                                   (crearPersonajeVacio, inicializarEntidadesNivel, procesarTurno, guardarProgreso, cargarProgreso)
+├── Renderizado.h / Renderizado.cpp ← Todo lo visual con SFML: recursos, menús, mapa con cámara, inventario, tienda y batalla
+├── Persistencia.h / Persistencia.cpp ← Guardado y carga de partidas en partidas.txt
+├── Gestion.h / Gestion.cpp       ← Ordenamientos por burbuja y búsquedas binarias
+├── ErroresMios.h / ErroresMios.cpp ← Namespace errores: excepciones estándar con mensajes propios
+├── partidas.txt                  ← Guardado persistente
+├── DungeonSurvival.slnx          ← Solución de Visual Studio
+├── DungeonSurvival.vcxproj       ← Proyecto C++
+├── *.png / *.jpg                 ← Sprites y fondos
+├── *.ttf                         ← Fuentes
+└── sfml-*-3.dll                  ← Runtimes de SFML 3.1.0
 ```
+
+Cómo se relacionan los módulos: `Main` → `Entrada` (bucle y teclas) → `Logica` (reglas) → `Datos` / `Persistencia` / `Gestion`; `Renderizado` dibuja el estado y `ErroresMios` define las excepciones que lanzan `Gestion` (`busquedaBinaria`) y `Persistencia`.
 
 ---
 
@@ -334,4 +338,4 @@ Si los seis ítems están cumplidos, **`Ctrl + F5`** debe abrir la ventana del j
 | Plataforma objetivo | Windows 10 / 11 — x64 |
 | Tipo de aplicación | Console + ventana SFML |
 | Persistencia | Archivo de texto `partidas.txt` |
-| Arquitectura | Monolítica con máquina de estados (`estado_pantalla`) |
+| Arquitectura | Modular (Datos, Entrada, Logica, Renderizado, Persistencia, Gestion, ErroresMios) con máquina de estados (`estado_pantalla`) |

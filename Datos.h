@@ -51,12 +51,6 @@ const int max_columnas = 10;
 // Carga la matriz de fondo y de entidades del nivel pedido
 void cargarnivel(int numero_nivel, string fondo_destino[max_filas][max_columnas], string entidades_destino[max_filas][max_columnas]);
 
-// MANEJO DE ERRORES
-// En vez de una jerarquia de excepciones, los errores se senalizan igual que
-// en el resto del archivo: con un valor de retorno bool (ver eliminarPartidaPorIndice,
-// cargarPartidaPorIndice mas abajo) o con un sentinel invalido como -1
-// (igual que enemigo_pos_x/enemigo_pos_y en EstadoBatalla).
-
 // PARTIDAS GUARDADAS
 struct registro_partida {
 	personaje pj;
@@ -69,7 +63,8 @@ struct registro_partida {
 enum estado_pantalla { menu_principal, jugando, cargar, controles, reglas, creditos, en_tienda, en_batalla, en_inventario, confirmar_guardado, aviso_guardado, pedir_nombre, intro_historia };
 
 // Fases del combate por turnos (incluye las cinematicas del boss)
-enum class fase_batalla {
+enum 
+    fase_batalla {
     cinematica_boss,
     espera_input,
     anim_pj_ataca,
@@ -85,15 +80,15 @@ enum class fase_batalla {
 };
 
 // Cuantas partidas guardadas se muestran a la vez en la pantalla de carga
-constexpr int MAX_PARTIDAS_VISIBLES = 5;
+const int MAX_PARTIDAS_VISIBLES = 5;
 
 // Duraciones (en segundos) de las animaciones y cinematicas de combate.
 // Compartidas entre la logica de turnos y el dibujado.
-constexpr float DURACION_ANIM_BATALLA = 0.55f;
-constexpr float DURACION_CURACION_BOSS = 4.5f;
-constexpr float DURACION_ATAQUE_ESPECIAL_BOSS = 4.0f;
-constexpr float DURACION_GOLPE_DEVASTADOR = 3.8f;
-constexpr float DURACION_DERROTA = 4.5f;
+const float DURACION_ANIM_BATALLA = 0.55f;
+const float DURACION_CURACION_BOSS = 4.5f;
+const float DURACION_ATAQUE_ESPECIAL_BOSS = 4.0f;
+const float DURACION_GOLPE_DEVASTADOR = 3.8f;
+const float DURACION_DERROTA = 4.5f;
 
 // --- Estado de la batalla por turnos ---
 struct EstadoBatalla {
@@ -150,21 +145,3 @@ struct EstadoUI {
     int cursor_inventario = 0;
     bool en_modo_compra = true;
 };
-
-// PERSISTENCIA ALTERNATIVA CON EXCEPCIONES
-namespace persistencia {
-
-
-struct partidaGuardada {
-	personaje pj;
-	string entidades[max_filas][max_columnas];
-	long long ultimo_guardado = 0;
-};
-
-std::vector<partidaGuardada> listarPartidas();
-bool guardarPartidaPersistente(const personaje& pj, string entidades[max_filas][max_columnas]);
-bool cargarUltimaPartida(personaje& pj, string entidades[max_filas][max_columnas]);
-bool cargarPartidaPorIndice(personaje& pj, int indice, string entidades[max_filas][max_columnas]);
-bool eliminarPartidaPorNombre(string nombre);
-
-}

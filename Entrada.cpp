@@ -49,7 +49,7 @@ void manejarTeclaMenuPrincipal(
             ui.item_carga = 0;
             ui.scroll_carga = 0;
             for (int i = 0; i < static_cast<int>(ui.partidas_guardadas.size()); i++) {
-                const auto& registro = ui.partidas_guardadas[i];
+                const registro_partida& registro = ui.partidas_guardadas[i];
                 std::string nombre_mostrado = registro.pj.name.empty() ? std::string("Paolo") : registro.pj.name;
                 std::ostringstream linea;
                 linea << (i + 1) << ") " << nombre_mostrado
@@ -93,7 +93,10 @@ void manejarTeclaPedirNombre(
         if (nombre_final.empty()) nombre_final = "Paolo";
 
         // Reseteamos el protagonista y el mapa para arrancar una partida limpia
-        protagonista(paolo);
+        mercader vendedor_descartable;
+        enemigo enemigo_descartable;
+        paolo = crearPersonajeVacio();
+        inicializarEntidadesNivel(paolo, vendedor_descartable, enemigo_descartable, false);
         paolo.name = nombre_final;
         cargarnivel(paolo.nivel_actual, matriz_fondo, matriz_entidades);
         // Antes de empezar, mostramos la cinematica de introduccion
@@ -169,11 +172,18 @@ void manejarTeclaCargar(
     else if (tecla == sf::Keyboard::Key::Enter) {
         if (ui.item_carga >= 0 && ui.item_carga < static_cast<int>(ui.partidas_guardadas.size())) {
             // Cargamos DIRECTO desde la lista ya ordenada por fecha.
-            const registro_partida& partida_seleccionada = ui.partidas_guardadas[ui.item_carga];
-            paolo = partida_seleccionada.pj;
-            for (int i = 0; i < max_filas; i++) {
-                for (int j = 0; j < max_columnas; j++) {
-                    matriz_entidades[i][j] = partida_seleccionada.entidades[i][j];
+            // La primera de la lista es la mas reciente, que es justo la que carga cargarProgreso.
+            bool cargada = false;
+            if (ui.item_carga == 0) {
+                cargada = cargarProgreso(paolo, matriz_entidades);
+            }
+            if (!cargada) {
+                const registro_partida& partida_seleccionada = ui.partidas_guardadas[ui.item_carga];
+                paolo = partida_seleccionada.pj;
+                for (int i = 0; i < max_filas; i++) {
+                    for (int j = 0; j < max_columnas; j++) {
+                        matriz_entidades[i][j] = partida_seleccionada.entidades[i][j];
+                    }
                 }
             }
             // Si la partida guardada tiene nombre vacio, le ponemos uno por defecto
@@ -225,7 +235,7 @@ bool manejarTeclaConfirmarGuardado(
     }
     else if (tecla == sf::Keyboard::Key::Enter) {
         if (ui.item_confirmacion == 0) {
-            guardarPartida(paolo, matriz_entidades);
+            guardarProgreso(paolo, matriz_entidades);
             ui.guardado_reciente = true;
             estado_actual = aviso_guardado;
             return true;
@@ -274,7 +284,7 @@ void manejarTeclaJugando(
                 ui.en_pausa = false;
                 break;
             case 1: // Guardar Partida
-                guardarPartida(paolo, matriz_entidades);
+                guardarProgreso(paolo, matriz_entidades);
                 ui.guardado_reciente = true;
                 ui.estado_pendiente = jugando;
                 estado_actual = aviso_guardado;
@@ -322,28 +332,28 @@ void manejarTeclaJugando(
             std::cout << "Inventario Ordenado!" << std::endl;
         }
         else if (tecla == sf::Keyboard::Key::Num8) {
-            guardarPartida(paolo, matriz_entidades);
+            guardarProgreso(paolo, matriz_entidades);
         }
         else if (tecla == sf::Keyboard::Key::W) {
-            moverpj(paolo, 'W', matriz_fondo, matriz_entidades);
+            procesarTurno(paolo, 'W', matriz_fondo, matriz_entidades, ui.cofre_resultado);
             ui.aviso_puerta = false;
             ui.aviso_cofre = false;
             ui.aviso_boss = false;
         }
         else if (tecla == sf::Keyboard::Key::S) {
-            moverpj(paolo, 'S', matriz_fondo, matriz_entidades);
+            procesarTurno(paolo, 'S', matriz_fondo, matriz_entidades, ui.cofre_resultado);
             ui.aviso_puerta = false;
             ui.aviso_cofre = false;
             ui.aviso_boss = false;
         }
         else if (tecla == sf::Keyboard::Key::A) {
-            moverpj(paolo, 'A', matriz_fondo, matriz_entidades);
+            procesarTurno(paolo, 'A', matriz_fondo, matriz_entidades, ui.cofre_resultado);
             ui.aviso_puerta = false;
             ui.aviso_cofre = false;
             ui.aviso_boss = false;
         }
         else if (tecla == sf::Keyboard::Key::D) {
-            moverpj(paolo, 'D', matriz_fondo, matriz_entidades);
+            procesarTurno(paolo, 'D', matriz_fondo, matriz_entidades, ui.cofre_resultado);
             ui.aviso_puerta = false;
             ui.aviso_cofre = false;
             ui.aviso_boss = false;
@@ -353,7 +363,7 @@ void manejarTeclaJugando(
             ui.cofre_resultado.oro = 0;
             ui.cofre_resultado.cant_loot = 0;
 
-            char resultado = interactuar(paolo, matriz_entidades, matriz_fondo, ui.cofre_resultado);
+            char resultado = procesarTurno(paolo, 'E', matriz_fondo, matriz_entidades, ui.cofre_resultado);
 
             if (resultado == 'S') {
                 paolo.nivel_actual = paolo.nivel_actual + 1;
@@ -542,20 +552,27 @@ void manejarTeclaTienda(EstadoUI& ui, personaje& paolo, const mercader& vendedor
         else {
             if (paolo.cant_items > 0) {
                 std::string item_a_vender = paolo.inventario[ui.cursor_inventario];
-                int pos = buscaritem(paolo.inventario, paolo.cant_items, item_a_vender);
+                try {
+                    // La busqueda binaria necesita el inventario ordenado
+                    ordenarburbuja(paolo.inventario, paolo.cant_items);
+                    int pos = busquedaBinaria(paolo.inventario, paolo.cant_items, item_a_vender);
 
-                paolo.oro += obtenerprecioventa(item_a_vender);
+                    paolo.oro += obtenerprecioventa(item_a_vender);
 
-                for (int i = pos; i < paolo.cant_items - 1; i++) {
-                    paolo.inventario[i] = paolo.inventario[i + 1];
+                    for (int i = pos; i < paolo.cant_items - 1; i++) {
+                        paolo.inventario[i] = paolo.inventario[i + 1];
+                    }
+                    paolo.cant_items--;
+
+                    if (ui.cursor_inventario >= paolo.cant_items && ui.cursor_inventario > 0) {
+                        ui.cursor_inventario--;
+                    }
+                    if (paolo.cant_items == 0) {
+                        ui.en_modo_compra = true;
+                    }
                 }
-                paolo.cant_items--;
-
-                if (ui.cursor_inventario >= paolo.cant_items && ui.cursor_inventario > 0) {
-                    ui.cursor_inventario--;
-                }
-                if (paolo.cant_items == 0) {
-                    ui.en_modo_compra = true;
+                catch (const std::exception& e) {
+                    std::cout << e.what() << std::endl;
                 }
             }
         }
@@ -578,11 +595,10 @@ int iniciarjuego() {
 
     EstadoBatalla batalla;
 
-    personaje paolo;
-    protagonista(paolo);
-
+    personaje paolo = crearPersonajeVacio();
     mercader vendedor;
-    inicializarmercader(vendedor);
+    enemigo enemigo_inicial;
+    inicializarEntidadesNivel(paolo, vendedor, enemigo_inicial, false);
     ordenarmercader(vendedor.catalogo, vendedor.precios, 6);
 
     EstadoUI ui;

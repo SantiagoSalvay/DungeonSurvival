@@ -220,59 +220,6 @@ int obtenerdefensa(string armadura_nombre) {
 	return 0;
 }
 
-// BUSQUEDAS Y ORDENAMIENTOS
-void ordenarBurbuja(string v[], int n) {
-	for (int i = 0; i < n - 1; i++) {
-		for (int j = i + 1; j < n; j++) {
-			if (v[i] > v[j]) {
-				string aux = v[i];
-				v[i] = v[j];
-				v[j] = aux;
-			}
-		}
-	}
-}
-
-void ordenarParalelo(string claves[], int valores[], int n) {
-	for (int i = 0; i < n - 1; i++) {
-		for (int j = i + 1; j < n; j++) {
-			if (claves[i] > claves[j]) {
-				string auxc = claves[i];
-				claves[i] = claves[j];
-				claves[j] = auxc;
-
-				int auxv = valores[i];
-				valores[i] = valores[j];
-				valores[j] = auxv;
-			}
-		}
-	}
-}
-
-// Devuelve -1 si no encuentra el item, igual que el sentinel invalido
-// que ya se usa en EstadoBatalla (enemigo_pos_x/enemigo_pos_y = -1).
-int busquedaBinaria(const string v[], int n, const string& x) {
-	int izq = 0, der = n - 1;
-	while (izq <= der) {
-		int medio = (izq + der) / 2;
-		if (v[medio] == x) return medio;
-		if (v[medio] < x) izq = medio + 1;
-		else der = medio - 1;
-	}
-	return -1;
-}
-
-int busquedaBinariaParalelo(const string claves[], int n, const string& x) {
-	int izq = 0, der = n - 1;
-	while (izq <= der) {
-		int medio = (izq + der) / 2;
-		if (claves[medio] == x) return medio;
-		if (claves[medio] < x) izq = medio + 1;
-		else der = medio - 1;
-	}
-	return -1;
-}
-
 // BATALLA POR TURNOS
 void iniciarBatalla(EstadoBatalla& batalla, int pos_x, int pos_y, bool es_boss) {
     batalla.enemigo_pos_x = pos_x;
@@ -604,8 +551,12 @@ char procesarTurno(
 	string matriz_entidades[max_filas][max_columnas],
 	cofre& cofre_resultado
 ) {
+	// 'E' interactua con lo que haya alrededor; W/A/S/D solo mueven (no hay interaccion)
+	if (direccion == 'E') {
+		return interactuar(pj, matriz_entidades, matriz_fondo, cofre_resultado);
+	}
 	moverpj(pj, direccion, matriz_fondo, matriz_entidades);
-	return interactuar(pj, matriz_entidades, matriz_fondo, cofre_resultado);
+	return ' ';
 }
 
 // --- Responsabilidad 5: Guardado y carga de partidas ---
